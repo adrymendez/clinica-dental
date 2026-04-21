@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clínica Dental Sonrisa Perfecta</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Encabezado con Menú -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <h1><img src="img/Logounico.png" alt="" style="width:45px;height:45px;vertical-align:middle;margin-right:8px;">Centro Odontológico Dr.Miguel Mendez</h1>
+            </div>
+            <nav class="nav">
+                <a href="#inicio" class="nav-link">Inicio</a>
+                <a href="#servicios" class="nav-link">Servicios</a>
+                <a href="#nosotros" class="nav-link">Nosotros</a>
+                <a href="#contacto" class="nav-link">Contacto</a>
+                <a href="#paciente" class="nav-link">Paciente</a>
+                <a href="#admin" class="nav-link">Admin</a>
+                <button class="nav-cta" id="navCita">Agenda Cita</button>
+            </nav>
+            <div class="hamburger" id="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sección Héroe -->
+    <section class="hero" id="inicio">
+        <div class="hero-content">
+            <h2 class="hero-title">Tu Sonrisa es Nuestra Prioridad</h2>
+            <p class="hero-subtitle">Clínica dental moderna con tecnología de punta y un implantólogo altamente capacitado, comprometido con la salud y estética de tu sonrisa.</p>
+            <button class="cta-button" id="ctaButton">Agenda Tu Cita Ahora</button>
+        </div>
+        <div class="hero-image">
+            <div class="image-placeholder">
+                <img src="img/Logounico.png" alt="Icono Diente" style="width:500px;height:500px;display:block;margin:auto;">
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección Servicios -->
+    <section class="servicios" id="servicios">
+        <div class="container">
+            <h2 class="section-title">Nuestros Servicios</h2>
+            <div class="servicios-grid">
+                <div class="servicio-card">
+                    <div class="servicio-icon"><img src="img/diente.png" alt="Limpieza Dental" style="width:100px;height:100px;"></div>
+                    <h3>Limpieza Dental</h3>
+                    <p>Limpieza profesional completa con ultrasonido y pulido para una sonrisa radiante</p>
+                </div>
+                <div class="servicio-card">
+                    <div class="servicio-icon"><img src="img/ortodoncia.png" alt="Ortodoncia" style="width:100px;height:100px;"></div>
+                    <h3>Ortodoncia</h3>
+                    <p>Alineamiento perfecto de tus dientes con diferentes opciones de brackets y alineadores</p>
+                </div>
+                <div class="servicio-card">
+                    <div class="servicio-icon"><img src="img/implantes.png" alt="Implantes" style="width:100px;height:100px;"></div>
+                    <h3>Implantes</h3>
+                    <p>Implantes dentales de última generación con garantía a largo plazo</p>
+                </div>
+                <div class="servicio-card">
+                    <div class="servicio-icon"><img src="img/blanqueamiento.png" alt="Blanqueamiento" style="width:100px;height:100px;"></div>
+                    <h3>Blanqueamiento</h3>
+                    <p>Blanqueamiento profesional que proporciona resultados visibles en pocas sesiones</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección Nosotros -->
+    <section class="nosotros" id="nosotros">
+        <div class="container">
+            <h2 class="section-title">Sobre Nosotros</h2>
+            <div class="nosotros-content">
+                <div class="nosotros-text">
+                    <p>En <strong>Clínica Dental Sonrisa Perfecta</strong>, contamos con más de 15 años de experiencia brindando servicios odontológicos de calidad.</p>
+                    <p>Nuestro equipo está compuesto por profesionales certificados y especialistas en diferentes áreas de la odontología.</p>
+                    <p>Utilizamos tecnología de punta y mantenemos los más altos estándares de higiene y bioseguridad para garantizar tu comodidad y seguridad.</p>
+                </div>
+                <div class="nosotros-stats">
+                    <div class="stat">
+                        <h4>+5000</h4>
+                        <p>Pacientes Felices</p>
+                    </div>
+                    <div class="stat">
+                        <h4>+15</h4>
+                        <p>Años Experiencia</p>
+                    </div>
+                    <div class="stat">
+                        <h4>100%</h4>
+                        <p>Satisfacción</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección Contacto y Formulario -->
+    <section class="contacto" id="contacto">
+        <div class="container">
+            <h2 class="section-title">Reserva Tu Cita</h2>
+            <div class="formulario-container">
+                <form id="formularioCita" class="formulario">
+                    <div class="form-group">
+                        <label for="nombre">Nombre Completo</label>
+                        <input type="text" id="nombre" name="nombre" required placeholder="Tu nombre">
+                        <span class="error-message" id="errorNombre"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="telefono">Teléfono</label>
+                        <input type="tel" id="telefono" name="telefono" required placeholder="Tu teléfono">
+                        <span class="error-message" id="errorTelefono"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Correo Electrónico</label>
+                        <input type="email" id="email" name="email" required placeholder="tu@email.com">
+                        <span class="error-message" id="errorEmail"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="servicio">Servicio</label>
+                        <select id="servicio" name="servicio" required>
+                            <option value="">Selecciona un servicio</option>
+                            <option value="Limpieza Dental">Limpieza Dental</option>
+                            <option value="Ortodoncia">Ortodoncia</option>
+                            <option value="Implantes">Implantes</option>
+                            <option value="Blanqueamiento">Blanqueamiento</option>
+                        </select>
+                        <span class="error-message" id="errorServicio"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="medico">Médico</label>
+                        <select id="medico" name="medico" required>
+                            <option value="">Selecciona un médico</option>
+                        </select>
+                        <span class="error-message" id="errorMedico"></span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="fecha">Fecha</label>
+                            <input type="date" id="fecha" name="fecha" required>
+                            <span class="error-message" id="errorFecha"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="hora">Hora</label>
+                            <input type="time" id="hora" name="hora" required>
+                            <span class="error-message" id="errorHora"></span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit-button">Confirmar Cita</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección Paciente -->
+    <section class="paciente" id="paciente">
+        <div class="container">
+            <h2 class="section-title">Área del Paciente</h2>
+            <p class="hero-subtitle">Consulta tus citas ingresando tu correo o teléfono.</p>
+            <div class="formulario-container">
+                <form id="formBuscarPaciente" class="formulario">
+                    <div class="form-group">
+                        <label for="buscarEmail">Correo Electrónico o Teléfono</label>
+                        <input type="text" id="buscarEmail" placeholder="Ingresa tu correo o teléfono">
+                    </div>
+                    <button type="submit" class="submit-button">Buscar Citas</button>
+                </form>
+
+                <div id="resultadosPaciente" class="formulario" style="margin-top:20px; display:none;">
+                    <h3>Mis Citas</h3>
+                    <div id="listaCitasPaciente"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Modal de Éxito -->
+    <div class="modal" id="modalExito">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>¡Cita Agendada!</h3>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="mensajeConfirmacion"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-button" id="closeModalBtn">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Login Admin -->
+    <div class="modal" id="modalAdminLogin">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Login Administrador</h3>
+                <button class="modal-close" id="closeAdminModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formAdminLogin" class="form-inline">
+                    <div style="width:100%">
+                        <label for="adminPass" style="color:var(--accent-green);font-weight:600;">Contraseña</label>
+                        <input type="password" id="adminPass" placeholder="Ingresa la contraseña" style="width:100%;padding:10px;margin-top:8px;border-radius:6px;border:1px solid rgba(26,188,156,0.2);background:rgba(0,0,0,0.3);color:var(--text-light);">
+                    </div>
+                    <div style="margin-top:12px;display:flex;gap:10px;justify-content:flex-end;width:100%">
+                        <button type="submit" class="modal-button">Ingresar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Área de Administrador (oculta hasta login) -->
+    <section class="admin hidden" id="admin">
+        <div class="container">
+            <h2 class="section-title">Panel Administrador - Citas Agendadas</h2>
+
+            <div class="admin-controls">
+                <div class="filter-group">
+                    <label for="filterMedico">Filtrar por médico</label>
+                    <select id="filterMedico">
+                        <option value="">Todos los médicos</option>
+                    </select>
+                </div>
+                <div class="admin-actions">
+                    <button id="exportCsv" class="modal-button">Exportar CSV</button>
+                    <button id="clearAll" class="modal-button">Eliminar todas</button>
+                    <button id="adminLogout" class="modal-button">Cerrar sesión</button>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table class="admin-table" id="tablaCitas">
+                    <thead>
+                        <tr>
+                            <th>Paciente</th>
+                            <th>Teléfono</th>
+                            <th>Correo</th>
+                            <th>Servicio</th>
+                            <th>Médico</th>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="section-title" style="margin-top:40px;">Gestionar Médicos</h3>
+            <div class="doctors-manage">
+                <form id="formAddDoctor" class="form-inline">
+                    <input type="text" id="newDoctor" placeholder="Nombre del médico" required>
+                    <button type="submit" class="modal-button">Añadir Médico</button>
+                </form>
+                <ul id="listaMedicos" class="doctor-list"></ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pie de página -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 🦷Clínica Dental Miguel Mendez. Todos los derechos reservados.</p>
+            <p>Contacto: info@sonrisaperfecta.com | Teléfono: (809) 529-8188 </p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
