@@ -6,6 +6,10 @@ app.use(cors());
 app.use(express.json());
 
 let citas = [];
+// Ruta raíz
+app.get('/', (req, res) => {
+    res.send('API Clínica Dental funcionando 🚀');
+});
 
 // 🔹 Obtener todas las citas
 app.get('/api/citas', (req, res) => {
