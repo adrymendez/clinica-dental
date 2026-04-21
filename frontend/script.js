@@ -868,7 +868,8 @@ formBuscarPaciente && formBuscarPaciente.addEventListener('submit', function(e) 
 //////////////////////////////API_URL///////////////////////////////////
 
 
-const API_URL = 'https://clinica-dental-gyyo.onrender.com/api';
+const API_URL = 'http://localhost:3001/api';
+
 
 // Cargar citas desde BD
 async function cargarCitasDesdeBD() {
