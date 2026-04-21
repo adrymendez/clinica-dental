@@ -1,5 +1,5 @@
 /* ======================= DATOS INICIALES Y ELEMENTOS DEL DOM ======================= */
-
+const API_URL = "https://clinica-dental-gyyo.onrender.com/api";
 const horariosOcupados = {
     '2026-02-18': ['09:00', '14:00', '16:00'],
     '2026-02-19': ['10:00', '15:00'],
@@ -383,46 +383,16 @@ async function enviarFormulario() {
 
         const data = await res.json();
 
-        datos.id = data.id;
-        citas.push(datos);
+        citas.push(data);
 
-        mostrarModalExito(datos);
+        mostrarModalExito(data);
         formularioCita.reset();
 
     } catch (error) {
-        alert('Error al guardar la cita');
         console.error(error);
+        alert("Error guardando cita ❌");
     }
 }
-/* function enviarFormulario() {
-    // Recopilar datos
-    const datos = {
-        id: Date.now(),
-        nombre: inputNombre.value.trim(),
-        telefono: inputTelefono.value.trim(),
-        email: inputEmail.value.trim(),
-        servicio: inputServicio.value,
-        medico: inputMedico.value,
-        fecha: inputFecha.value,
-        hora: inputHora.value,
-    };
-
-    // Guardar en memoria y storage
-    citas.push(datos);
-    guardarCitas();
-
-    // Atualizar horas disponibles (no tocamos el objeto inicial; se calcula dinámicamente)
-    actualizarHorasDisponibles();
-
-    // Actualizar vista admin
-    renderCitasTable();
-
-    // Mostrar modal de confirmación
-    mostrarModalExito(datos);
-
-    // Limpiar formulario
-    formularioCita.reset();
-} */
 
 function mostrarModalExito(datos) {
     const fechaFormato = new Date(datos.fecha + 'T00:00:00').toLocaleDateString('es-ES', {
@@ -869,7 +839,6 @@ formBuscarPaciente && formBuscarPaciente.addEventListener('submit', function(e) 
 
 
 const API_URL = 'https://clinica-dental-gyyo.onrender.com/api';
-
 
 // Cargar citas desde BD
 async function cargarCitasDesdeBD() {
