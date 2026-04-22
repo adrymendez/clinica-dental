@@ -513,19 +513,19 @@ window.addEventListener('load', function() {
 
 /* ======================= MANEJO DE ERRORES Y PREVENCIÓN DE SPAM ======================= */
 
-let ultimoEnvioProcesado = 0;
-const tiempoMinimoEntreEnvios = 1000; // 1 segundo mínimo entre envíos
+// let ultimoEnvioProcesado = 0;
+// const tiempoMinimoEntreEnvios = 1000; // 1 segundo mínimo entre envíos
 
-formularioCita.addEventListener('submit', function(e) {
-    const ahora = Date.now();
+// formularioCita.addEventListener('submit', function(e) {
+//     const ahora = Date.now();
 
-    if (ahora - ultimoEnvioProcesado < tiempoMinimoEntreEnvios) {
-        e.preventDefault();
-        return;
-    }
+//     if (ahora - ultimoEnvioProcesado < tiempoMinimoEntreEnvios) {
+//         e.preventDefault();
+//         return;
+//     }
 
-    ultimoEnvioProcesado = ahora;
-});
+//     ultimoEnvioProcesado = ahora;
+// });
 
 /* ======================= VALIDACIÓN AL CARGAR LA PÁGINA ======================= */
 
