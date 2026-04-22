@@ -383,13 +383,13 @@ async function enviarFormulario() {
 
         const data = await res.json();
 
-        citas.push(data);
+        console.log("Guardado en BD:", data); // 👈 IMPORTANTE
 
         mostrarModalExito(data);
         formularioCita.reset();
 
     } catch (error) {
-        console.error(error);
+        console.error("ERROR:", error);
         alert("Error guardando cita ❌");
     }
 }
@@ -831,29 +831,3 @@ formBuscarPaciente && formBuscarPaciente.addEventListener('submit', function(e) 
     resultadosPacienteDiv.style.display = 'block';
     resultadosPacienteDiv.scrollIntoView({ behavior: 'smooth' });
 });
-
-
-
-
-//////////////////////////////API_URL///////////////////////////////////
-
-
-const API_URL = 'https://clinica-dental-gyyo.onrender.com/api';
-
-// Cargar citas desde BD
-async function cargarCitasDesdeBD() {
-  const res = await fetch(`${API_URL}/citas`);
-  citas = await res.json();
-}
-
-// Guardar cita en BD
-async function guardarCitaEnBD(datos) {
-  const res = await fetch(`${API_URL}/citas`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(datos)
-  });
-  if (!res.ok) throw new Error('No se pudo guardar la cita');
-  const out = await res.json();
-  return out.id;
-}
