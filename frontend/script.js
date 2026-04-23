@@ -77,7 +77,7 @@ function obtenerHorariosDisponibles(fecha) {
         '12:00', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00'
     ];
 
-    // Combina horarios ocupados predefinidos con citas guardadas en localStorage
+    // Combina horarios ocupados predefinidos con citas from database
     const ocupados = new Set();
     if (horariosOcupados[fecha]) {
         horariosOcupados[fecha].forEach(h => ocupados.add(h));
@@ -381,12 +381,18 @@ async function enviarFormulario() {
             body: JSON.stringify(datos)
         });
 
-        const data = await res.json();
+        const backendData = await res.json();
 
-        console.log("Guardado en BD:", data); // 👈 IMPORTANTE
+        console.log("Guardado en BD:", backendData);
 
-        mostrarModalExito(data);
+        // Merge original datos + backend id for complete modal data
+        const datosCompletos = { ...datos, id: backendData.id };
+
+        mostrarModalExito(datosCompletos);
         formularioCita.reset();
+
+        // Refresh citas from DB
+        await cargarCitasDesdeBD();
 
     } catch (error) {
         console.error("ERROR:", error);
@@ -549,20 +555,21 @@ formularioCita.querySelectorAll('input, select').forEach((campo, index, campos) 
     });
 });
 
-/* ======================= ALMACENAMIENTO Y ADMIN ======================= */
-
-function guardarCitas() {
-    localStorage.setItem('citas', JSON.stringify(citas));
-}
-
-function cargarCitas() {
+/* ======================= CARGAR CITAS DESDE BASE DE DATOS ======================= */
+async function cargarCitasDesdeBD() {
     try {
-        const raw = localStorage.getItem('citas');
-        citas = raw ? JSON.parse(raw) : [];
-    } catch (e) {
+        const res = await fetch(`${API_URL}/citas`);
+        if (!res.ok) throw new Error('Error fetching citas');
+        citas = await res.json();
+        renderCitasTable();
+        actualizarHorasDisponibles();
+    } catch (error) {
+        console.error('Error cargando citas desde BD:', error);
         citas = [];
     }
 }
+
+/* ======================= ALMACENAMIENTO Y ADMIN ======================= */
 
 function guardarMedicos() {
     localStorage.setItem('medicos', JSON.stringify(medicos));
@@ -644,7 +651,7 @@ function renderCitasTable() {
     const filtro = filterMedico ? filterMedico.value : '';
     tablaCitasBody.innerHTML = '';
     const lista = citas.slice().sort((a,b) => a.fecha.localeCompare(b.fecha) || a.hora.localeCompare(b.hora));
-    lista.forEach((cita, idx) => {
+    lista.forEach((cita) => {
         if (filtro && cita.medico !== filtro) return;
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -655,18 +662,19 @@ function renderCitasTable() {
             <td>${cita.medico || ''}</td>
             <td>${cita.fecha}</td>
             <td>${cita.hora}</td>
-            <td><button class="modal-button small" data-idx="${idx}">Eliminar</button></td>
+            <td><button class="modal-button small">Eliminar</button></td>
         `;
         const btn = tr.querySelector('button');
-        btn.addEventListener('click', function() {
-            if (confirm('Eliminar esta cita?')) {
-                const realIndex = citas.findIndex(x => x.id === cita.id);
-                if (realIndex > -1) {
-                    citas.splice(realIndex, 1);
-                    guardarCitas();
-                    renderCitasTable();
-                    actualizarHorasDisponibles();
-                }
+        btn.addEventListener('click', async function() {
+            if (!confirm('Eliminar esta cita?')) return;
+            try {
+                await fetch(`${API_URL}/citas/${cita.id}`, {
+                    method: 'DELETE'
+                });
+                await cargarCitasDesdeBD();
+            } catch (error) {
+                console.error(error);
+                alert('Error eliminando cita');
             }
         });
         tablaCitasBody.appendChild(tr);
@@ -695,24 +703,32 @@ function exportCitasCSV() {
 
 if (exportCsvBtn) exportCsvBtn.addEventListener('click', exportCitasCSV);
 
-if (clearAllBtn) clearAllBtn.addEventListener('click', function() {
-    if (!confirm('Eliminar todas las citas guardadas? Esta acción no puede deshacerse.')) return;
-    citas = [];
-    guardarCitas();
-    renderCitasTable();
-    actualizarHorasDisponibles();
+if (clearAllBtn) clearAllBtn.addEventListener('click', async function() {
+    if (!confirm('Eliminar todas las citas? Esta acción no puede deshacerse.')) return;
+    try {
+        const res = await fetch(`${API_URL}/citas`);
+        const lista = await res.json();
+        for (let c of lista) {
+            await fetch(`${API_URL}/citas/${c.id}`, {
+                method: 'DELETE'
+            });
+        }
+        await cargarCitasDesdeBD();
+    } catch (error) {
+        console.error(error);
+        alert('Error eliminando todo');
+    }
 });
 
 if (filterMedico) filterMedico.addEventListener('change', renderCitasTable);
 
 /* ======================= INICIALIZACIÓN EXTENDIDA ======================= */
 
-function inicializarApp() {
+async function inicializarApp() {
     cargarMedicos();
-    cargarCitas();
+    await cargarCitasDesdeBD();
     renderDoctorSelects();
     renderDoctorsList();
-    renderCitasTable();
     configurarRangoFechas();
     actualizarHorasDisponibles();
 }
