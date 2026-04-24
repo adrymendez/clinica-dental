@@ -106,6 +106,10 @@ app.delete('/api/citas/:id', async (req, res) => {
 });
 
 app.get('/api/reporte', async (req, res) => {
+  const requestTs = new Date();
+  const isoTs = requestTs.toISOString();
+  console.log(`[REPORTE] Inicio generación Excel | ts=${isoTs} | ip=${req.ip}`);
+
   try {
     const result = await pool.query(`
       SELECT id, nombre, telefono, fecha
@@ -114,25 +118,31 @@ app.get('/api/reporte', async (req, res) => {
     `);
 
     const citas = result.rows;
+    console.log(`[REPORTE] Registros consultados: ${citas.length}`);
 
+    // Se crea SIEMPRE un workbook nuevo por request
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Sistema Clínica Dental';
-    workbook.created = new Date();
+    workbook.created = requestTs;
 
     const worksheet = workbook.addWorksheet('Reporte Citas');
 
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
+    const yyyy = requestTs.getFullYear();
+    const mm = String(requestTs.getMonth() + 1).padStart(2, '0');
+    const dd = String(requestTs.getDate()).padStart(2, '0');
     const fechaArchivo = `${yyyy}-${mm}-${dd}`;
+    const timestampArchivo = requestTs.getTime();
+    const fileName = `reporte_citas_${fechaArchivo}_${timestampArchivo}.xlsx`;
 
-    const fechaGeneracion = today.toLocaleString('es-DO', {
+    console.log(`[REPORTE] Archivo a generar: ${fileName}`);
+
+    const fechaGeneracion = requestTs.toLocaleString('es-DO', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      second: '2-digit'
     });
 
     worksheet.mergeCells('A1:D1');
@@ -233,10 +243,15 @@ app.get('/api/reporte', async (req, res) => {
     );
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="reporte_citas_${fechaArchivo}.xlsx"`
+      `attachment; filename="${fileName}"`
     );
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
 
     await workbook.xlsx.write(res);
+    console.log(`[REPORTE] Fin generación Excel | archivo=${fileName} | registros=${citas.length}`);
     res.end();
   } catch (error) {
     console.error('❌ Error generando reporte Excel:', error);
