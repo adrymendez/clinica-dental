@@ -1,0 +1,126 @@
+REPORTE TÉCNICO - DEBUG PRODUCCIÓN (PERSISTENCIA DE CITAS)
+Proyecto: Clínica Dental (Frontend Netlify + Backend Render + PostgreSQL)
+
+==================================================
+🔴 PROBLEMAS ENCONTRADOS
+==================================================
+
+1) Falta de manejo robusto de errores en backend
+- Antes: las rutas GET/POST/DELETE no tenían try/catch.
+- Riesgo: fallos de DB podían romper request y devolver errores poco claros o silenciosos.
+- Impacto: comportamiento inconsistente y difícil de diagnosticar cuando GET /api/citas devolvía [].
+
+2) Arranque sin validación estricta de DATABASE_URL
+- Antes: si DATABASE_URL faltaba o era incorrecta, la app podía arrancar con fallo no controlado.
+- Impacto: ambiente mal configurado en Render puede aparentar “funcionar a ratos” y luego perder datos (en realidad apunta a otra DB o falla conexión).
+
+3) Sin endpoint de salud para verificar estado DB
+- Antes: no existía comprobación explícita de conectividad real a PostgreSQL.
+- Impacto: no había forma rápida de confirmar si Render estaba conectado a la misma base persistente.
+
+4) Frontend no validaba correctamente errores HTTP en POST y DELETE
+- Antes: en algunos flujos se asumía éxito aunque backend respondiera error HTTP.
+- Impacto: falsa percepción de guardado/eliminación correctos.
+
+5) No se detectó almacenamiento en memoria para citas (esto es correcto)
+- Backend usa INSERT/SELECT directo contra PostgreSQL.
+- No hay array en backend para persistir citas.
+- Conclusión: la pérdida NO viene de memoria en Node, sino de entorno/DB/configuración.
+
+==================================================
+🟡 CAUSAS
+==================================================
+
+Causa principal probable de “desaparecen datos”:
+- El backend está apuntando a una instancia de PostgreSQL distinta/no persistente/cambiada en Render (DATABASE_URL incorrecta o variable de entorno modificada).
+- En Render, si conectas/rotas recurso DB y cambias DATABASE_URL, puedes estar leyendo otra base vacía.
+- Sin logging/healthcheck adecuados, este problema parece “borrado de datos”.
+
+Causas secundarias:
+- Manejo de errores débil en backend y frontend ocultaba señales claras del problema.
+- Falta de validación de campos podía insertar datos incompletos y dificultar trazabilidad.
+
+==================================================
+🟢 SOLUCIÓN CLARA
+==================================================
+
+Se aplicaron correcciones productivas para estabilizar y diagnosticar:
+
+A) Backend endurecido (server.js)
+- Validación obligatoria de process.env.DATABASE_URL al iniciar.
+- Inicialización de tabla con función initDatabase() protegida.
+- try/catch en GET /api/citas, POST /api/citas y DELETE /api/citas/:id.
+- Validación de payload en POST.
+- Validación de ID en DELETE.
+- Endpoint nuevo GET /api/health para confirmar conectividad DB.
+- pool.on('error') para capturar errores inesperados del Pool.
+- Arranque controlado con startServer() y fail-fast si DB falla.
+
+B) Frontend mejorado (script.js)
+- POST /citas: ahora valida res.ok y arroja error con mensaje del backend.
+- DELETE /citas/:id: ahora valida res.ok y reporta error real.
+
+==================================================
+🔧 CÓDIGO CORREGIDO (APLICADO)
+==================================================
+
+Archivo actualizado: backend/server.js
+- Añadido:
+  - if (!process.env.DATABASE_URL) { ... process.exit(1) }
+  - pool.on('error', ...)
+  - async function initDatabase() { CREATE TABLE IF NOT EXISTS ... }
+  - GET /api/health
+  - try/catch en GET/POST/DELETE
+  - validaciones de campos e id
+  - startServer() async con control de errores de arranque
+
+Archivo actualizado: frontend/script.js
+- enviarFormulario():
+  - if (!res.ok) throw new Error(...)
+- delete de cita:
+  - parse body de respuesta y validación de res.ok
+
+==================================================
+🧪 SIMULACIÓN SOLICITADA
+==================================================
+
+1) Guardar una cita
+- Frontend envía fetch POST /api/citas con JSON.
+- Backend ejecuta INSERT INTO citas (...) RETURNING * con await.
+- Resultado esperado: respuesta 201 con registro creado.
+
+2) Consultar citas
+- Frontend/cliente llama GET /api/citas.
+- Backend ejecuta SELECT * FROM citas ORDER BY id DESC.
+- Resultado esperado: lista con la cita recién insertada.
+
+3) Reiniciar servidor
+- Backend vuelve a iniciar, reconecta a PostgreSQL y recrea tabla solo si no existe.
+- No hay borrado automático.
+
+4) Verificar persistencia
+- Repetir GET /api/citas.
+- Si DATABASE_URL apunta a la misma DB persistente, la cita sigue presente.
+- Si devuelve [], el problema es de entorno (DATABASE_URL/instancia DB) y no del código de inserción.
+
+==================================================
+CHECKLIST OPERATIVO EN RENDER (CRÍTICO)
+==================================================
+
+1. Confirmar variable DATABASE_URL en el servicio backend:
+   - Debe apuntar siempre a la misma instancia PostgreSQL de producción.
+
+2. Confirmar que el backend desplegado es el código corregido actual.
+
+3. Probar endpoint:
+   - GET https://<tu-backend>.onrender.com/api/health
+   - Debe devolver { ok: true, db: "connected", ... }.
+
+4. Probar flujo real:
+   - POST /api/citas -> GET /api/citas -> reinicio servicio -> GET /api/citas.
+
+==================================================
+📌 CONCLUSIÓN DIRECTA
+==================================================
+
+El código ya guardaba en PostgreSQL (no en memoria), pero faltaban controles de producción para detectar fallos de conexión/configuración. Se aplicaron correcciones de backend y frontend para eliminar fallos silenciosos y validar respuestas HTTP. Si los datos siguen “desapareciendo”, la causa restante está en infraestructura/configuración de Render (DATABASE_URL apuntando a otra DB o recurso incorrecto), no en la lógica INSERT/SELECT.

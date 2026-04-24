@@ -383,6 +383,10 @@ async function enviarFormulario() {
 
         const backendData = await res.json();
 
+        if (!res.ok) {
+            throw new Error(backendData?.error || 'Error guardando cita en backend');
+        }
+
         console.log("Guardado en BD:", backendData);
 
         // Merge original datos + backend id for complete modal data
@@ -668,9 +672,13 @@ function renderCitasTable() {
         btn.addEventListener('click', async function() {
             if (!confirm('Eliminar esta cita?')) return;
             try {
-                await fetch(`${API_URL}/citas/${cita.id}`, {
+                const res = await fetch(`${API_URL}/citas/${cita.id}`, {
                     method: 'DELETE'
                 });
+                const body = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error(body?.error || 'Error eliminando cita');
+                }
                 await cargarCitasDesdeBD();
             } catch (error) {
                 console.error(error);
