@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import pkg from 'pg';
+import ExcelJS from 'exceljs';
 
 const { Pool } = pkg;
 
@@ -101,6 +102,145 @@ app.delete('/api/citas/:id', async (req, res) => {
   } catch (error) {
     console.error('❌ Error eliminando cita:', error);
     res.status(500).json({ error: 'No se pudo eliminar la cita' });
+  }
+});
+
+app.get('/api/reporte', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, nombre, telefono, fecha
+      FROM citas
+      ORDER BY to_date(fecha, 'YYYY-MM-DD') DESC, id DESC
+    `);
+
+    const citas = result.rows;
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Sistema Clínica Dental';
+    workbook.created = new Date();
+
+    const worksheet = workbook.addWorksheet('Reporte Citas');
+
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const fechaArchivo = `${yyyy}-${mm}-${dd}`;
+
+    const fechaGeneracion = today.toLocaleString('es-DO', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    worksheet.mergeCells('A1:D1');
+    worksheet.getCell('A1').value = 'Reporte de Citas - Clínica Dental';
+    worksheet.getCell('A1').font = { size: 18, bold: true, color: { argb: 'FF0B1F3A' } };
+    worksheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
+    worksheet.getRow(1).height = 30;
+
+    worksheet.mergeCells('A2:D2');
+    worksheet.getCell('A2').value = `Fecha de generación: ${fechaGeneracion}`;
+    worksheet.getCell('A2').font = { size: 11, italic: true, color: { argb: 'FF4A5568' } };
+    worksheet.getCell('A2').alignment = { horizontal: 'center', vertical: 'middle' };
+    worksheet.getRow(2).height = 20;
+
+    worksheet.addRow([]);
+
+    const headerRowIndex = 4;
+    const headerRow = worksheet.getRow(headerRowIndex);
+    headerRow.values = ['ID', 'Nombre del Paciente', 'Teléfono', 'Fecha de Cita'];
+
+    headerRow.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF1E3A5F' }
+      };
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFB0B7C3' } },
+        left: { style: 'thin', color: { argb: 'FFB0B7C3' } },
+        bottom: { style: 'thin', color: { argb: 'FFB0B7C3' } },
+        right: { style: 'thin', color: { argb: 'FFB0B7C3' } }
+      };
+    });
+    headerRow.height = 22;
+
+    for (const cita of citas) {
+      const fechaObj = new Date(`${cita.fecha}T00:00:00`);
+      const fechaFormateada = Number.isNaN(fechaObj.getTime())
+        ? cita.fecha
+        : fechaObj.toLocaleDateString('es-DO');
+
+      const row = worksheet.addRow([
+        cita.id,
+        cita.nombre,
+        cita.telefono,
+        fechaFormateada
+      ]);
+
+      row.eachCell((cell) => {
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+          left: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+          bottom: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+          right: { style: 'thin', color: { argb: 'FFD1D5DB' } }
+        };
+      });
+    }
+
+    worksheet.addRow([]);
+    const totalRow = worksheet.addRow(['', '', 'TOTAL DE CITAS:', citas.length]);
+    totalRow.getCell(3).font = { bold: true, size: 12, color: { argb: 'FF0B1F3A' } };
+    totalRow.getCell(4).font = { bold: true, size: 12, color: { argb: 'FF0B1F3A' } };
+    totalRow.getCell(3).alignment = { horizontal: 'right', vertical: 'middle' };
+    totalRow.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
+    totalRow.eachCell((cell) => {
+      if (cell.value !== null && cell.value !== '') {
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FF9CA3AF' } },
+          left: { style: 'thin', color: { argb: 'FF9CA3AF' } },
+          bottom: { style: 'thin', color: { argb: 'FF9CA3AF' } },
+          right: { style: 'thin', color: { argb: 'FF9CA3AF' } }
+        };
+      }
+    });
+
+    worksheet.columns.forEach((column) => {
+      let maxLength = 10;
+      column.eachCell({ includeEmpty: true }, (cell) => {
+        const value = cell.value == null ? '' : String(cell.value);
+        maxLength = Math.max(maxLength, value.length + 2);
+      });
+      column.width = Math.min(maxLength, 40);
+    });
+
+    worksheet.autoFilter = {
+      from: `A${headerRowIndex}`,
+      to: `D${headerRowIndex}`
+    };
+
+    worksheet.views = [{ state: 'frozen', ySplit: headerRowIndex }];
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="reporte_citas_${fechaArchivo}.xlsx"`
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('❌ Error generando reporte Excel:', error);
+    res.status(500).json({ error: 'No se pudo generar el reporte Excel' });
   }
 });
 

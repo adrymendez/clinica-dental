@@ -1,8 +1,11 @@
-# TODO - Diagnóstico persistencia citas
+# TODO - Reporte Excel profesional
 
-- [ ] Analizar persistencia real backend (INSERT/SELECT/await/memoria)
-- [ ] Analizar conexión PostgreSQL y configuración Render (DATABASE_URL/SSL/errores silenciosos)
-- [ ] Analizar flujo frontend -> backend (fetch y payload)
-- [ ] Aplicar correcciones en backend/server.js (manejo de errores, validaciones, logs, healthcheck)
-- [ ] Aplicar mejora mínima en frontend/script.js (validar res.ok en POST/DELETE)
-- [ ] Crear reporte técnico en TXT con problemas, causas, soluciones y simulación
+- [x] Instalar dependencia `exceljs` en backend
+- [x] Actualizar backend/server.js con endpoint GET /api/reporte
+- [x] Implementar SQL con orden por fecha DESC
+- [x] Implementar formato profesional Excel (título, fecha de generación, encabezados, bordes, centrado, freeze, filtros)
+- [x] Implementar autoajuste dinámico de columnas
+- [x] Formatear fecha como dd/mm/yyyy en reporte
+- [x] Agregar fila final: TOTAL DE CITAS
+- [x] Configurar headers HTTP correctos para descarga de .xlsx
+- [x] Manejo de errores con try/catch
