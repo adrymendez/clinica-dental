@@ -689,24 +689,38 @@ function renderCitasTable() {
     });
 }
 
-function exportCitasCSV() {
-    if (!citas || citas.length === 0) return alert('No hay citas para exportar');
-    const headers = ['Paciente','Teléfono','Correo','Servicio','Médico','Fecha','Hora'];
-    const rows = citas.map(c => [c.nombre, c.telefono, c.email, c.servicio, c.medico, c.fecha, c.hora]);
-    let csv = headers.join(',') + '\n';
-    rows.forEach(r => {
-        csv += r.map(field => `"${String(field || '').replace(/"/g,'""')}"`).join(',') + '\n';
-    });
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const hoy = new Date().toISOString().split('T')[0];
-    a.download = `citas-${hoy}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+async function exportCitasCSV() {
+    try {
+        const response = await fetch(`${API_URL}/reporte`, {
+            method: 'GET'
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error descargando reporte: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+
+        const contentDisposition = response.headers.get('Content-Disposition') || response.headers.get('content-disposition') || '';
+        let fileName = 'reporte.xlsx';
+
+        const fileNameMatch = contentDisposition.match(/filename\*?=(?:UTF-8'')?["']?([^;"']+)["']?/i);
+        if (fileNameMatch && fileNameMatch[1]) {
+            fileName = decodeURIComponent(fileNameMatch[1].trim());
+        }
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error exportando reporte:', error);
+        alert('No se pudo descargar el reporte. Intenta de nuevo.');
+    }
 }
 
 if (exportCsvBtn) exportCsvBtn.addEventListener('click', exportCitasCSV);
