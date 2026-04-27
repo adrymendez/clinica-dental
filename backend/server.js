@@ -23,6 +23,165 @@ pool.on('error', (err) => {
   console.error('❌ Error inesperado en el pool de PostgreSQL:', err);
 });
 
+const WHATSAPP_MODE = (process.env.WHATSAPP_MODE || 'wa_me').toLowerCase();
+const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || '';
+const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
+const SECRETARIA_TEL = process.env.SECRETARIA_TEL || '8095298188';
+
+function normalizarTelefonoDO(telefono = '') {
+  const digits = String(telefono).replace(/\D/g, '');
+
+  if (digits.length === 10 && /^8(09|29|49)/.test(digits)) {
+    return `+1${digits}`;
+  }
+
+  if (digits.length === 11 && /^1(809|829|849)/.test(digits)) {
+    return `+${digits}`;
+  }
+
+  if (digits.length === 12 && /^1(809|829|849)/.test(digits)) {
+    return `+${digits}`;
+  }
+
+  return null;
+}
+
+function buildWhatsAppLink(telefono, mensaje) {
+  const normalized = normalizarTelefonoDO(telefono);
+  if (!normalized) return null;
+  const telWa = normalized.replace('+', '');
+  const encodedMessage = encodeURIComponent(mensaje);
+  return `https://wa.me/${telWa}?text=${encodedMessage}`;
+}
+
+async function enviarWhatsApp(telefono, mensaje) {
+  const telNormalized = normalizarTelefonoDO(telefono);
+  if (!telNormalized) {
+    console.warn(`[WA] Teléfono inválido, no se envía mensaje: ${telefono}`);
+    return { ok: false, mode: WHATSAPP_MODE, reason: 'telefono_invalido' };
+  }
+
+  if (WHATSAPP_MODE === 'cloud') {
+    if (!WHATSAPP_TOKEN || !WHATSAPP_PHONE_NUMBER_ID) {
+      console.warn('[WA] Modo cloud activo sin WHATSAPP_TOKEN o WHATSAPP_PHONE_NUMBER_ID');
+      return { ok: false, mode: 'cloud', reason: 'config_incompleta' };
+    }
+
+    try {
+      const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+      const payload = {
+        messaging_product: 'whatsapp',
+        to: telNormalized.replace('+', ''),
+        type: 'text',
+        text: { body: mensaje }
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const body = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        console.error('[WA] Error Cloud API:', body);
+        return { ok: false, mode: 'cloud', reason: 'api_error', detail: body };
+      }
+
+      console.log(`[WA] Mensaje enviado por Cloud API a ${telNormalized}`);
+      return { ok: true, mode: 'cloud', tel: telNormalized, detail: body };
+    } catch (error) {
+      console.error('[WA] Excepción enviando por Cloud API:', error);
+      return { ok: false, mode: 'cloud', reason: 'exception', detail: String(error?.message || error) };
+    }
+  }
+
+  const waLink = buildWhatsAppLink(telNormalized, mensaje);
+  console.log('[WA] Modo wa.me requiere envío manual');
+  console.log(`[WA] Link generado: ${waLink}`);
+  return { ok: true, mode: 'wa_me', tel: telNormalized, waLink };
+}
+
+function generarMensajeConfirmacion(cita) {
+  return `Hola ${cita.nombre}, tu cita en la clínica dental ha sido registrada correctamente.
+📅 Fecha: ${cita.fecha}
+⏰ Hora: ${cita.hora}
+
+Si hay algún error en tus datos, por favor comunícate con la secretaria:
+📞 Tel: ${SECRETARIA_TEL}
+
+Gracias por confiar en nosotros.`;
+}
+
+function generarMensajeActualizacion(cita) {
+  return `Hola ${cita.nombre}, tu cita ha sido actualizada correctamente.
+📅 Nueva fecha: ${cita.fecha}
+⏰ Nueva hora: ${cita.hora}
+
+Si necesitas hacer algún cambio adicional, contáctanos:
+📞 Tel: ${SECRETARIA_TEL}`;
+}
+
+function generarMensajeRecordatorio(cita) {
+  return `Recordatorio: Hola ${cita.nombre}, tienes una cita en 1 hora.
+📅 Fecha: ${cita.fecha}
+⏰ Hora: ${cita.hora}
+
+Te esperamos.`;
+}
+
+function parsearFechaHoraSeguro(fecha, hora) {
+  if (!fecha || !hora) return null;
+  const iso = `${fecha}T${hora}:00`;
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) return null;
+  return dt;
+}
+
+async function procesarRecordatorios() {
+  const ahora = new Date();
+  const desde = new Date(ahora.getTime() + 55 * 60 * 1000);
+  const hasta = new Date(ahora.getTime() + 65 * 60 * 1000);
+
+  try {
+    const result = await pool.query(`
+      SELECT id, nombre, telefono, fecha, hora, recordatorio_enviado
+      FROM citas
+      WHERE COALESCE(recordatorio_enviado, false) = false
+      ORDER BY id ASC
+    `);
+
+    for (const cita of result.rows) {
+      const citaDate = parsearFechaHoraSeguro(cita.fecha, cita.hora);
+      if (!citaDate) {
+        console.warn(`[WA][REMINDER] Cita ${cita.id} con fecha/hora inválida: ${cita.fecha} ${cita.hora}`);
+        continue;
+      }
+
+      if (citaDate >= desde && citaDate <= hasta) {
+        const mensaje = generarMensajeRecordatorio(cita);
+        const waResult = await enviarWhatsApp(cita.telefono, mensaje);
+
+        if (waResult.ok) {
+          await pool.query(
+            'UPDATE citas SET recordatorio_enviado = true WHERE id = $1',
+            [cita.id]
+          );
+          console.log(`[WA][REMINDER] Recordatorio enviado para cita ${cita.id}`);
+        } else {
+          console.error(`[WA][REMINDER] Falló envío para cita ${cita.id}.`, waResult);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error procesando recordatorios:', error);
+  }
+}
+
 async function initDatabase() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS citas (
@@ -34,9 +193,15 @@ async function initDatabase() {
       medico TEXT NOT NULL,
       fecha TEXT NOT NULL,
       hora TEXT NOT NULL,
+      recordatorio_enviado BOOLEAN DEFAULT false,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `);
+  await pool.query(`
+    ALTER TABLE citas
+    ADD COLUMN IF NOT EXISTS recordatorio_enviado BOOLEAN DEFAULT false
+  `);
+
   console.log('✅ Tabla "citas" lista');
 }
 
@@ -72,13 +237,32 @@ app.post('/api/citas', async (req, res) => {
       return res.status(400).json({ error: 'Faltan campos obligatorios para crear la cita' });
     }
 
+    const telefonoNormalizado = normalizarTelefonoDO(telefono);
+    if (!telefonoNormalizado) {
+      return res.status(400).json({ error: 'Teléfono inválido. Debe ser un número dominicano válido con código país +1.' });
+    }
+
     const result = await pool.query(
       `INSERT INTO citas (nombre, telefono, email, servicio, medico, fecha, hora)
        VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [nombre, telefono, email, servicio, medico, fecha, hora]
+      [nombre, telefonoNormalizado, email, servicio, medico, fecha, hora]
     );
 
-    res.status(201).json(result.rows[0]);
+    const citaCreada = result.rows[0];
+
+    try {
+      const mensaje = generarMensajeConfirmacion(citaCreada);
+      const waResult = await enviarWhatsApp(citaCreada.telefono, mensaje);
+      if (!waResult.ok) {
+        console.error('[WA][POST] No se pudo enviar confirmación:', waResult);
+      } else {
+        console.log(`[WA][POST] Confirmación enviada para cita ${citaCreada.id}`);
+      }
+    } catch (waError) {
+      console.error('[WA][POST] Error inesperado en envío de WhatsApp:', waError);
+    }
+
+    res.status(201).json(citaCreada);
   } catch (error) {
     console.error('❌ Error guardando cita:', error);
     res.status(500).json({ error: 'No se pudo guardar la cita' });
@@ -97,19 +281,38 @@ app.put('/api/citas/:id', async (req, res) => {
       return res.status(400).json({ error: 'Faltan campos obligatorios para actualizar la cita' });
     }
 
+    const telefonoNormalizado = normalizarTelefonoDO(telefono);
+    if (!telefonoNormalizado) {
+      return res.status(400).json({ error: 'Teléfono inválido. Debe ser un número dominicano válido con código país +1.' });
+    }
+
     const result = await pool.query(
       `UPDATE citas
        SET nombre = $1, telefono = $2, fecha = $3, hora = $4
        WHERE id = $5
        RETURNING *`,
-      [nombre, telefono, fecha, hora, id]
+      [nombre, telefonoNormalizado, fecha, hora, id]
     );
 
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Cita no encontrada' });
     }
 
-    res.json(result.rows[0]);
+    const citaActualizada = result.rows[0];
+
+    try {
+      const mensaje = generarMensajeActualizacion(citaActualizada);
+      const waResult = await enviarWhatsApp(citaActualizada.telefono, mensaje);
+      if (!waResult.ok) {
+        console.error('[WA][PUT] No se pudo enviar actualización:', waResult);
+      } else {
+        console.log(`[WA][PUT] Confirmación de actualización enviada para cita ${citaActualizada.id}`);
+      }
+    } catch (waError) {
+      console.error('[WA][PUT] Error inesperado en envío de WhatsApp:', waError);
+    }
+
+    res.json(citaActualizada);
   } catch (error) {
     console.error('❌ Error actualizando cita:', error);
     res.status(500).json({ error: 'No se pudo actualizar la cita' });
@@ -295,6 +498,14 @@ const PORT = process.env.PORT || 3001;
 async function startServer() {
   try {
     await initDatabase();
+
+    setInterval(() => {
+      procesarRecordatorios().catch((error) => {
+        console.error('❌ Error en ciclo de recordatorios:', error);
+      });
+    }, 60 * 1000);
+
+    console.log(`🟢 Scheduler de recordatorios iniciado (cada 1 minuto) | modo WA: ${WHATSAPP_MODE}`);
     app.listen(PORT, () => console.log(`✅ Servidor corriendo en puerto ${PORT}`));
   } catch (error) {
     console.error('❌ Error inicializando aplicación:', error);
