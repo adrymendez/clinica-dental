@@ -45,6 +45,12 @@ let medicos = [];
 let citas = [];
 let citaEditandoId = null;
 
+const MEDICOS_FALLBACK = [
+    { id: 'fallback-1', nombre: 'Dr. Ana Pérez', especialidad: null },
+    { id: 'fallback-2', nombre: 'Dr. Carlos Gómez', especialidad: null },
+    { id: 'fallback-3', nombre: 'Dra. Laura Molina', especialidad: null }
+];
+
 /* ======================= FUNCIONES DE UTILIDAD ======================= */
 
 // Obtener fecha mínima (hoy)
@@ -617,79 +623,105 @@ async function cargarCitasDesdeBD() {
 
 /* ======================= ALMACENAMIENTO Y ADMIN ======================= */
 
-function guardarMedicos() {
-    localStorage.setItem('medicos', JSON.stringify(medicos));
+function mapMedicosBackendToUI(lista) {
+    return (lista || []).map((m) => ({
+        id: m.id,
+        nombre: m.nombre,
+        especialidad: m.especialidad || null
+    }));
 }
 
-function cargarMedicos() {
-    try {
-        const raw = localStorage.getItem('medicos');
-        medicos = raw ? JSON.parse(raw) : [];
-    } catch (e) {
-        medicos = [];
-    }
+function usarMedicosLocales() {
+    medicos = [...MEDICOS_FALLBACK];
+    renderDoctorSelects();
+    renderDoctorsList();
+}
 
-    // Si no hay médicos, agregar algunos por defecto
-    if (!medicos || medicos.length === 0) {
-        medicos = ['Dr. Ana Pérez', 'Dr. Carlos Gómez', 'Dra. Laura Molina'];
-        guardarMedicos();
+async function cargarMedicos() {
+    try {
+        const res = await fetch(`${API_URL}/medicos`);
+        if (!res.ok) throw new Error('Error obteniendo médicos desde backend');
+        const data = await res.json();
+
+        console.log(data);
+
+        if (Array.isArray(data) && data.length > 0) {
+            medicos = mapMedicosBackendToUI(data);
+            renderDoctorSelects();
+            renderDoctorsList();
+        } else {
+            usarMedicosLocales();
+        }
+    } catch (error) {
+        console.error('Error cargando médicos desde API:', error);
+        usarMedicosLocales();
     }
 }
 
 function renderDoctorSelects() {
     // Form select
     inputMedico.innerHTML = '<option value="">Selecciona un médico</option>';
-    medicos.forEach(m => {
+    medicos.forEach((m) => {
         const opt = document.createElement('option');
-        opt.value = m;
-        opt.textContent = m;
+        opt.value = String(m.id);
+        opt.textContent = m.nombre;
         inputMedico.appendChild(opt);
     });
 
     // Filter select
-    filterMedico.innerHTML = '<option value="">Todos los médicos</option>';
-    medicos.forEach(m => {
-        const opt = document.createElement('option');
-        opt.value = m;
-        opt.textContent = m;
-        filterMedico.appendChild(opt);
-    });
+    if (filterMedico) {
+        filterMedico.innerHTML = '<option value="">Todos los médicos</option>';
+        medicos.forEach((m) => {
+            const opt = document.createElement('option');
+            opt.value = m.nombre;
+            opt.textContent = m.nombre;
+            filterMedico.appendChild(opt);
+        });
+    }
 }
 
 function renderDoctorsList() {
+    if (!listaMedicos) return;
     listaMedicos.innerHTML = '';
-    medicos.forEach((m, idx) => {
+    medicos.forEach((m) => {
         const li = document.createElement('li');
-        li.textContent = m;
-        const btn = document.createElement('button');
-        btn.title = 'Eliminar médico';
-        btn.innerHTML = '✖';
-        btn.addEventListener('click', () => {
-            if (confirm(`Eliminar "${m}"? Esto no eliminará citas existentes.`)) {
-                medicos.splice(idx, 1);
-                guardarMedicos();
-                renderDoctorSelects();
-                renderDoctorsList();
-            }
-        });
-        li.appendChild(btn);
+        li.textContent = m.nombre;
         listaMedicos.appendChild(li);
     });
 }
 
-formAddDoctor && formAddDoctor.addEventListener('submit', function(e) {
-    e.preventDefault();
-    const nombre = inputNewDoctor.value.trim();
+async function guardarMedico() {
+    const nombre = (inputNewDoctor?.value || '').trim();
     if (!nombre) return;
-    if (medicos.includes(nombre)) {
+
+    const existe = medicos.some((m) => m.nombre.toLowerCase() === nombre.toLowerCase());
+    if (existe) {
         alert('El médico ya existe');
         return;
     }
-    medicos.push(nombre);
-    guardarMedicos();
-    renderDoctorSelects();
-    renderDoctorsList();
-    inputNewDoctor.value = '';
+
+    const res = await fetch(`${API_URL}/medicos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, especialidad: null })
+    });
+
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        throw new Error(body?.error || 'Error al guardar médico');
+    }
+}
+
+formAddDoctor && formAddDoctor.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    try {
+        await guardarMedico();
+        await cargarMedicos();
+        inputNewDoctor.value = '';
+    } catch (error) {
+        console.error('Error guardando médico:', error);
+        alert(error.message || 'No se pudo guardar el médico');
+    }
 });
 
 function resetFormularioEdicionAdmin() {
@@ -925,10 +957,8 @@ if (editFecha) {
 /* ======================= INICIALIZACIÓN EXTENDIDA ======================= */
 
 async function inicializarApp() {
-    cargarMedicos();
+    await cargarMedicos();
     await cargarCitasDesdeBD();
-    renderDoctorSelects();
-    renderDoctorsList();
     configurarRangoFechas();
     actualizarHorasDisponibles();
 }

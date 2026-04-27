@@ -1,47 +1,37 @@
-# TODO - Producción Pro (Cloud API + Tracking + Admin)
+# TODO - Sincronización de Médicos (PostgreSQL + Render)
 
-- [ ] Backend `server.js`
-  - [ ] Validar configuración crítica al iniciar (`WHATSAPP_MODE`, token, phone number id).
-  - [ ] Unificar logs profesionales:
-    - [ ] `[WA][SEND]`
-    - [ ] `[WA][ERROR]`
-    - [ ] `[WA][WEBHOOK]`
-    - [ ] `[WA][REMINDER]`
-  - [ ] Soporte templates WhatsApp:
-    - [ ] `enviarTemplateConfirmacion(cita)`
-    - [ ] `enviarTemplateRecordatorio(cita)`
-    - [ ] fallback a texto normal.
-  - [ ] Tracking en respuestas y DB:
-    - [ ] guardar `whatsapp_message_id`
-    - [ ] guardar `whatsapp_status`
-    - [ ] guardar `whatsapp_error` cuando aplique.
-  - [ ] Webhook inteligente:
-    - [ ] procesar `messages` entrantes
-    - [ ] procesar `statuses` (`sent`, `delivered`, `read`, `failed`)
-    - [ ] actualizar estado por `message_id`.
-  - [ ] Endpoint admin de reenvío:
-    - [ ] `POST /api/citas/:id/reenviar-whatsapp`
-  - [ ] Manejo errores Meta:
-    - [ ] `131047` número no permitido
-    - [ ] `100` token inválido
+- [ ] Fase 1 — Backend `backend/server.js`
+  - [ ] Crear tabla `medicos` en `initDatabase`:
+    - [ ] `id SERIAL PRIMARY KEY`
+    - [ ] `nombre TEXT NOT NULL`
+    - [ ] `especialidad TEXT`
+  - [ ] Agregar endpoint `GET /api/medicos` leyendo PostgreSQL (`ORDER BY id DESC`)
+  - [ ] Agregar endpoint `POST /api/medicos` para alta desde admin
+  - [ ] Validación manual endpoint desplegado Render:
+    - [ ] `https://clinica-dental-gyyo.onrender.com/api/medicos`
 
-- [ ] Base de datos
-  - [ ] `ALTER TABLE citas ADD COLUMN IF NOT EXISTS whatsapp_message_id TEXT`
-  - [ ] `ALTER TABLE citas ADD COLUMN IF NOT EXISTS whatsapp_status TEXT DEFAULT 'pendiente'`
-  - [ ] `ALTER TABLE citas ADD COLUMN IF NOT EXISTS whatsapp_error TEXT`
+- [ ] Fase 2 — Frontend `frontend/script.js` (híbrido temporal con fallback)
+  - [ ] Reemplazar `cargarMedicos()` para priorizar API de Render
+  - [ ] Agregar `console.log(data)` de diagnóstico en carga de médicos
+  - [ ] Crear/ajustar render dinámico de médicos desde backend en:
+    - [ ] select de formulario (`#medico`)
+    - [ ] filtro admin (`#filterMedico`)
+    - [ ] listado admin (`#listaMedicos`)
+  - [ ] Mantener fallback temporal local únicamente si API falla o vacía
 
-- [ ] Frontend `index.html`
-  - [ ] Extender tabla admin con columnas:
-    - [ ] estado WhatsApp
-    - [ ] message_id
-  - [ ] Agregar acción: `Reenviar WhatsApp`
+- [ ] Fase 3 — Admin sincronizado
+  - [ ] Cambiar submit de `formAddDoctor` para usar `POST /api/medicos`
+  - [ ] Después de guardar médico ejecutar recarga:
+    - [ ] `await guardarMedico();`
+    - [ ] `await cargarMedicos();`
+  - [ ] Verificar que admin y pacientes ven la misma lista tras alta
 
-- [ ] Frontend `script.js`
-  - [ ] Renderizar status y message_id por cita
-  - [ ] Botón `Reenviar WhatsApp` por fila (fetch endpoint admin)
-  - [ ] Mantener compatibilidad wa.me sin romper editar/eliminar
+- [ ] Fase 4 — Migración final sin hardcodeo/localStorage
+  - [ ] Eliminar arrays hardcodeados de médicos
+  - [ ] Eliminar uso persistente de `localStorage` para médicos
+  - [ ] Dejar médicos únicamente en PostgreSQL vía backend Render
 
-- [ ] Pruebas completas
-  - [ ] API happy/error/edge (incluyendo reenvío y webhook inteligente)
-  - [ ] Scheduler robusto (citas sin teléfono, omitidas con log)
-  - [ ] UI admin (estado + reenvío + regresión completa)
+- [ ] Diagnóstico obligatorio
+  - [ ] Confirmar que frontend NO apunta a localhost
+  - [ ] Confirmar que backend activo es Render
+  - [ ] Confirmar que no hay endpoint alterno para médicos en el proyecto

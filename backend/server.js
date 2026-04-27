@@ -209,7 +209,16 @@ async function initDatabase() {
     ADD COLUMN IF NOT EXISTS recordatorio_enviado BOOLEAN DEFAULT false
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS medicos (
+      id SERIAL PRIMARY KEY,
+      nombre TEXT NOT NULL,
+      especialidad TEXT
+    )
+  `);
+
   console.log('✅ Tabla "citas" lista');
+  console.log('✅ Tabla "medicos" lista');
 }
 
 app.get('/api/health', async (req, res) => {
@@ -223,6 +232,35 @@ app.get('/api/health', async (req, res) => {
   } catch (error) {
     console.error('❌ Error en healthcheck:', error);
     res.status(500).json({ ok: false, db: 'error', error: 'Database unavailable' });
+  }
+});
+
+app.get('/api/medicos', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM medicos ORDER BY id DESC');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('❌ Error obteniendo médicos:', error);
+    res.status(500).json({ error: 'Error al obtener médicos' });
+  }
+});
+
+app.post('/api/medicos', async (req, res) => {
+  const { nombre, especialidad = null } = req.body;
+
+  if (!nombre || !String(nombre).trim()) {
+    return res.status(400).json({ error: 'El nombre del médico es obligatorio' });
+  }
+
+  try {
+    const result = await pool.query(
+      'INSERT INTO medicos (nombre, especialidad) VALUES ($1, $2) RETURNING *',
+      [String(nombre).trim(), especialidad ? String(especialidad).trim() : null]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('❌ Error guardando médico:', error);
+    res.status(500).json({ error: 'Error al guardar médico' });
   }
 });
 
