@@ -261,6 +261,38 @@
                 </table>
             </div>
 
+            <div class="formulario-container" style="margin-top:24px;">
+                <form id="formEditarCita" class="formulario">
+                    <h3 style="margin-bottom:12px;">Editar cita seleccionada</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editNombre">Nombre</label>
+                            <input type="text" id="editNombre" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editTelefono">Teléfono</label>
+                            <input type="text" id="editTelefono" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editFecha">Fecha</label>
+                            <input type="date" id="editFecha" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editHora">Hora</label>
+                            <input type="time" id="editHora" required>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:10px; justify-content:flex-end;">
+                        <button type="button" class="modal-button" id="btnCancelarEdicion" style="display:none;">Cancelar edición</button>
+                        <button type="submit" class="modal-button" id="btnGuardarCitaAdmin">Guardar cita</button>
+                    </div>
+                </form>
+            </div>
+
             <h3 class="section-title" style="margin-top:40px;">Gestionar Médicos</h3>
             <div class="doctors-manage">
                 <form id="formAddDoctor" class="form-inline">

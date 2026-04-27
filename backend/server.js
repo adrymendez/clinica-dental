@@ -85,6 +85,37 @@ app.post('/api/citas', async (req, res) => {
   }
 });
 
+app.put('/api/citas/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: 'ID inválido' });
+    }
+
+    const { nombre, telefono, fecha, hora } = req.body;
+    if (!nombre || !telefono || !fecha || !hora) {
+      return res.status(400).json({ error: 'Faltan campos obligatorios para actualizar la cita' });
+    }
+
+    const result = await pool.query(
+      `UPDATE citas
+       SET nombre = $1, telefono = $2, fecha = $3, hora = $4
+       WHERE id = $5
+       RETURNING *`,
+      [nombre, telefono, fecha, hora, id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Cita no encontrada' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('❌ Error actualizando cita:', error);
+    res.status(500).json({ error: 'No se pudo actualizar la cita' });
+  }
+});
+
 app.delete('/api/citas/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);

@@ -33,9 +33,17 @@ const filterMedico = document.getElementById('filterMedico');
 const formAddDoctor = document.getElementById('formAddDoctor');
 const inputNewDoctor = document.getElementById('newDoctor');
 const listaMedicos = document.getElementById('listaMedicos');
+const formEditarCita = document.getElementById('formEditarCita');
+const editNombre = document.getElementById('editNombre');
+const editTelefono = document.getElementById('editTelefono');
+const editFecha = document.getElementById('editFecha');
+const editHora = document.getElementById('editHora');
+const btnGuardarCitaAdmin = document.getElementById('btnGuardarCitaAdmin');
+const btnCancelarEdicion = document.getElementById('btnCancelarEdicion');
 
 let medicos = [];
 let citas = [];
+let citaEditandoId = null;
 
 /* ======================= FUNCIONES DE UTILIDAD ======================= */
 
@@ -71,7 +79,8 @@ function esTelefonoValido(telefono) {
 }
 
 // Obtener horarios disponibles
-function obtenerHorariosDisponibles(fecha) {
+function obtenerHorariosDisponibles(fecha, opciones = {}) {
+    const { excluirCitaId = null, incluirHora = null } = opciones;
     const horariosBase = [
         '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
         '12:00', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00'
@@ -84,10 +93,26 @@ function obtenerHorariosDisponibles(fecha) {
     }
 
     citas.forEach(c => {
-        if (c.fecha === fecha && c.hora) ocupados.add(c.hora);
+        if (!c || !c.fecha || !c.hora) return;
+        if (String(c.id) === String(excluirCitaId)) return;
+        if (c.fecha === fecha) ocupados.add(c.hora);
     });
 
-    return horariosBase.filter(hora => !ocupados.has(hora));
+    const disponibles = horariosBase.filter(hora => !ocupados.has(hora));
+
+    if (incluirHora && !disponibles.includes(incluirHora) && horariosBase.includes(incluirHora)) {
+        disponibles.push(incluirHora);
+        disponibles.sort();
+    }
+
+    return disponibles;
+}
+
+function esHoraPasada(fecha, hora) {
+    if (!fecha || !hora) return false;
+    const ahora = new Date();
+    const fechaHora = new Date(`${fecha}T${hora}:00`);
+    return fechaHora.getTime() < ahora.getTime();
 }
 
 /* ======================= VALIDACIÓN DE CAMPOS ======================= */
@@ -237,6 +262,13 @@ function validarHora() {
     if (valor === '') {
         grupo.classList.add('error');
         error.textContent = 'La hora es obligatoria';
+        error.classList.add('show');
+        return false;
+    }
+
+    if (esHoraPasada(fecha, valor)) {
+        grupo.classList.add('error');
+        error.textContent = 'No puedes seleccionar una hora pasada';
         error.classList.add('show');
         return false;
     }
@@ -650,6 +682,99 @@ formAddDoctor && formAddDoctor.addEventListener('submit', function(e) {
     inputNewDoctor.value = '';
 });
 
+function resetFormularioEdicionAdmin() {
+    if (!formEditarCita) return;
+    formEditarCita.reset();
+    citaEditandoId = null;
+    if (btnGuardarCitaAdmin) btnGuardarCitaAdmin.textContent = 'Guardar cita';
+    if (btnCancelarEdicion) btnCancelarEdicion.style.display = 'none';
+}
+
+function renderHorasEdicion(cita = null) {
+    if (!editHora || !editFecha) return;
+    const fechaSeleccionada = editFecha.value;
+    if (!fechaSeleccionada) {
+        editHora.innerHTML = '';
+        return;
+    }
+
+    const excluirCitaId = cita ? cita.id : citaEditandoId;
+    const horaOriginal = cita ? cita.hora : editHora.value;
+    const horarios = obtenerHorariosDisponibles(fechaSeleccionada, {
+        excluirCitaId,
+        incluirHora: horaOriginal || null
+    });
+
+    const horaActual = editHora.value || horaOriginal || '';
+    let html = '';
+    horarios.forEach(h => {
+        const selected = h === horaActual ? 'selected' : '';
+        html += `<option value="${h}" ${selected}>${h}</option>`;
+    });
+
+    if (!html && horaActual) {
+        html = `<option value="${horaActual}" selected>${horaActual}</option>`;
+    }
+
+    editHora.innerHTML = html;
+}
+
+function editarCita(cita) {
+    if (!formEditarCita || !cita) return;
+    citaEditandoId = cita.id;
+    editNombre.value = cita.nombre || '';
+    editTelefono.value = cita.telefono || '';
+    editFecha.value = cita.fecha || '';
+    renderHorasEdicion(cita);
+    if (cita.hora && editHora) editHora.value = cita.hora;
+    if (btnGuardarCitaAdmin) btnGuardarCitaAdmin.textContent = 'Guardar cambios';
+    if (btnCancelarEdicion) btnCancelarEdicion.style.display = 'inline-block';
+    formEditarCita.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+async function actualizarCita(id) {
+    const payload = {
+        nombre: editNombre.value.trim(),
+        telefono: editTelefono.value.trim(),
+        fecha: editFecha.value,
+        hora: editHora.value
+    };
+
+    if (!payload.nombre || !payload.telefono || !payload.fecha || !payload.hora) {
+        alert('Completa nombre, teléfono, fecha y hora para editar la cita.');
+        return;
+    }
+
+    if (esHoraPasada(payload.fecha, payload.hora)) {
+        const horaOriginal = citas.find(c => String(c.id) === String(id))?.hora;
+        const fechaOriginal = citas.find(c => String(c.id) === String(id))?.fecha;
+        const mantieneHoraOriginal = horaOriginal === payload.hora && fechaOriginal === payload.fecha;
+        if (!mantieneHoraOriginal) {
+            alert('No puedes asignar una hora pasada al editar una cita.');
+            return;
+        }
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/citas/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            throw new Error(body?.error || 'No se pudo actualizar la cita');
+        }
+
+        resetFormularioEdicionAdmin();
+        await cargarCitasDesdeBD();
+    } catch (error) {
+        console.error('Error actualizando cita:', error);
+        alert(error.message || 'Error actualizando cita');
+    }
+}
+
 function renderCitasTable() {
     if (!tablaCitasBody) return;
     const filtro = filterMedico ? filterMedico.value : '';
@@ -666,10 +791,20 @@ function renderCitasTable() {
             <td>${cita.medico || ''}</td>
             <td>${cita.fecha}</td>
             <td>${cita.hora}</td>
-            <td><button class="modal-button small">Eliminar</button></td>
+            <td>
+                <button class="modal-button small btn-editar">Editar</button>
+                <button class="modal-button small btn-eliminar">Eliminar</button>
+            </td>
         `;
-        const btn = tr.querySelector('button');
-        btn.addEventListener('click', async function() {
+
+        const btnEditar = tr.querySelector('.btn-editar');
+        const btnEliminar = tr.querySelector('.btn-eliminar');
+
+        btnEditar.addEventListener('click', function() {
+            editarCita(cita);
+        });
+
+        btnEliminar.addEventListener('click', async function() {
             if (!confirm('Eliminar esta cita?')) return;
             try {
                 const res = await fetch(`${API_URL}/citas/${cita.id}`, {
@@ -678,6 +813,9 @@ function renderCitasTable() {
                 const body = await res.json().catch(() => ({}));
                 if (!res.ok) {
                     throw new Error(body?.error || 'Error eliminando cita');
+                }
+                if (String(citaEditandoId) === String(cita.id)) {
+                    resetFormularioEdicionAdmin();
                 }
                 await cargarCitasDesdeBD();
             } catch (error) {
@@ -743,6 +881,31 @@ if (clearAllBtn) clearAllBtn.addEventListener('click', async function() {
 });
 
 if (filterMedico) filterMedico.addEventListener('change', renderCitasTable);
+
+if (formEditarCita) {
+    formEditarCita.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        if (citaEditandoId == null) {
+            alert('Selecciona una cita con el botón "Editar" antes de guardar cambios.');
+            return;
+        }
+
+        await actualizarCita(citaEditandoId);
+    });
+}
+
+if (btnCancelarEdicion) {
+    btnCancelarEdicion.addEventListener('click', function() {
+        resetFormularioEdicionAdmin();
+    });
+}
+
+if (editFecha) {
+    editFecha.addEventListener('change', function() {
+        renderHorasEdicion();
+    });
+}
 
 /* ======================= INICIALIZACIÓN EXTENDIDA ======================= */
 
