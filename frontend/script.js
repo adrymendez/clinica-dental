@@ -421,8 +421,8 @@ async function enviarFormulario() {
 
         console.log("Guardado en BD:", backendData);
 
-        if (backendData.waLink) {
-            console.log("📲 Abriendo WhatsApp:", backendData.waLink);
+        if (backendData.waMode === 'wa_me' && backendData.waLink) {
+            console.log("📲 Abriendo WhatsApp (wa.me):", backendData.waLink);
             window.open(backendData.waLink, '_blank');
         }
 
@@ -775,6 +775,11 @@ async function actualizarCita(id) {
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
             throw new Error(body?.error || 'No se pudo actualizar la cita');
+        }
+
+        if (body.waMode === 'wa_me' && body.waLink) {
+            console.log("📲 Abriendo WhatsApp (wa.me):", body.waLink);
+            window.open(body.waLink, '_blank');
         }
 
         resetFormularioEdicionAdmin();

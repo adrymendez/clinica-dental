@@ -26,6 +26,7 @@ pool.on('error', (err) => {
 const WHATSAPP_MODE = (process.env.WHATSAPP_MODE || 'wa_me').toLowerCase();
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || '';
 const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
+const WHATSAPP_VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || '';
 const SECRETARIA_TEL = process.env.SECRETARIA_TEL || '+18494555038';
 
 function normalizarTelefonoDO(telefono = '') {
@@ -68,10 +69,11 @@ async function enviarWhatsApp(telefono, mensaje) {
     }
 
     try {
+      const to = telNormalized.replace('+', '');
       const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
       const payload = {
         messaging_product: 'whatsapp',
-        to: telNormalized.replace('+', ''),
+        to,
         type: 'text',
         text: { body: mensaje }
       };
@@ -88,12 +90,17 @@ async function enviarWhatsApp(telefono, mensaje) {
       const body = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        console.error('[WA] Error Cloud API:', body);
-        return { ok: false, mode: 'cloud', reason: 'api_error', detail: body };
+        if (body?.error?.code === 131030 || body?.error?.error_subcode === 2494010) {
+          console.warn('[WA] Número no autorizado en modo desarrollo');
+        }
+        console.error('[WA][CLOUD] Error API:', body);
+        return { ok: false, mode: 'cloud', reason: 'api_error', detail: body, tel: to };
       }
 
-      console.log(`[WA] Mensaje enviado por Cloud API a ${telNormalized}`);
-      return { ok: true, mode: 'cloud', tel: telNormalized, detail: body };
+      const messageId = body?.messages?.[0]?.id || null;
+      console.log('[WA][CLOUD] Enviado a:', to);
+      console.log('[WA][CLOUD] Message ID:', messageId);
+      return { ok: true, mode: 'cloud', tel: to, messageId, detail: body };
     } catch (error) {
       console.error('[WA] Excepción enviando por Cloud API:', error);
       return { ok: false, mode: 'cloud', reason: 'exception', detail: String(error?.message || error) };
@@ -265,6 +272,7 @@ app.post('/api/citas', async (req, res) => {
 
     res.status(201).json({
       ...citaCreada,
+      waMode: WHATSAPP_MODE,
       waLink: waResult?.waLink || null
     });
   } catch (error) {
@@ -319,6 +327,7 @@ app.put('/api/citas/:id', async (req, res) => {
 
     res.json({
       ...citaActualizada,
+      waMode: WHATSAPP_MODE,
       waLink: waResult?.waLink || null
     });
   } catch (error) {
@@ -345,6 +354,24 @@ app.delete('/api/citas/:id', async (req, res) => {
     console.error('❌ Error eliminando cita:', error);
     res.status(500).json({ error: 'No se pudo eliminar la cita' });
   }
+});
+
+app.get('/webhook', (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  if (mode === 'subscribe' && token && token === WHATSAPP_VERIFY_TOKEN) {
+    return res.status(200).send(challenge);
+  }
+
+  return res.sendStatus(403);
+});
+
+app.post('/webhook', (req, res) => {
+  console.log('[WA][WEBHOOK] Evento recibido:');
+  console.log(JSON.stringify(req.body, null, 2));
+  res.sendStatus(200);
 });
 
 app.get('/api/reporte', async (req, res) => {
