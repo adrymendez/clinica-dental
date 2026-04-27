@@ -264,6 +264,30 @@ app.post('/api/medicos', async (req, res) => {
   }
 });
 
+app.delete('/api/medicos/:id', async (req, res) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'ID de médico inválido' });
+  }
+
+  try {
+    const result = await pool.query(
+      'DELETE FROM medicos WHERE id = $1 RETURNING id, nombre',
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Médico no encontrado' });
+    }
+
+    return res.json({ mensaje: 'Médico eliminado correctamente', medico: result.rows[0] });
+  } catch (error) {
+    console.error('❌ Error eliminando médico:', error);
+    return res.status(500).json({ error: 'Error al eliminar médico' });
+  }
+});
+
 app.get('/api/citas', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM citas ORDER BY id DESC');

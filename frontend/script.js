@@ -680,12 +680,46 @@ function renderDoctorSelects() {
     }
 }
 
+async function eliminarMedico(id) {
+    const medicoId = Number(id);
+    if (!Number.isInteger(medicoId) || medicoId <= 0) {
+        throw new Error('ID de médico inválido');
+    }
+
+    const res = await fetch(`${API_URL}/medicos/${medicoId}`, {
+        method: 'DELETE'
+    });
+
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        throw new Error(body?.error || 'No se pudo eliminar el médico');
+    }
+}
+
 function renderDoctorsList() {
     if (!listaMedicos) return;
     listaMedicos.innerHTML = '';
     medicos.forEach((m) => {
         const li = document.createElement('li');
         li.textContent = m.nombre;
+
+        if (typeof m.id === 'number') {
+            const btn = document.createElement('button');
+            btn.title = 'Eliminar médico';
+            btn.innerHTML = '✖';
+            btn.addEventListener('click', async () => {
+                if (!confirm(`Eliminar "${m.nombre}"?`)) return;
+                try {
+                    await eliminarMedico(m.id);
+                    await cargarMedicos();
+                } catch (error) {
+                    console.error('Error eliminando médico:', error);
+                    alert(error.message || 'No se pudo eliminar el médico');
+                }
+            });
+            li.appendChild(btn);
+        }
+
         listaMedicos.appendChild(li);
     });
 }
