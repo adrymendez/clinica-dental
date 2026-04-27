@@ -26,7 +26,7 @@ pool.on('error', (err) => {
 const WHATSAPP_MODE = (process.env.WHATSAPP_MODE || 'wa_me').toLowerCase();
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || '';
 const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
-const SECRETARIA_TEL = process.env.SECRETARIA_TEL || '8095298188';
+const SECRETARIA_TEL = process.env.SECRETARIA_TEL || '+18494555038';
 
 function normalizarTelefonoDO(telefono = '') {
   const digits = String(telefono).replace(/\D/g, '');
@@ -249,10 +249,11 @@ app.post('/api/citas', async (req, res) => {
     );
 
     const citaCreada = result.rows[0];
+    let waResult = null;
 
     try {
       const mensaje = generarMensajeConfirmacion(citaCreada);
-      const waResult = await enviarWhatsApp(citaCreada.telefono, mensaje);
+      waResult = await enviarWhatsApp(citaCreada.telefono, mensaje);
       if (!waResult.ok) {
         console.error('[WA][POST] No se pudo enviar confirmación:', waResult);
       } else {
@@ -262,7 +263,10 @@ app.post('/api/citas', async (req, res) => {
       console.error('[WA][POST] Error inesperado en envío de WhatsApp:', waError);
     }
 
-    res.status(201).json(citaCreada);
+    res.status(201).json({
+      ...citaCreada,
+      waLink: waResult?.waLink || null
+    });
   } catch (error) {
     console.error('❌ Error guardando cita:', error);
     res.status(500).json({ error: 'No se pudo guardar la cita' });
@@ -299,10 +303,11 @@ app.put('/api/citas/:id', async (req, res) => {
     }
 
     const citaActualizada = result.rows[0];
+    let waResult = null;
 
     try {
       const mensaje = generarMensajeActualizacion(citaActualizada);
-      const waResult = await enviarWhatsApp(citaActualizada.telefono, mensaje);
+      waResult = await enviarWhatsApp(citaActualizada.telefono, mensaje);
       if (!waResult.ok) {
         console.error('[WA][PUT] No se pudo enviar actualización:', waResult);
       } else {
@@ -312,7 +317,10 @@ app.put('/api/citas/:id', async (req, res) => {
       console.error('[WA][PUT] Error inesperado en envío de WhatsApp:', waError);
     }
 
-    res.json(citaActualizada);
+    res.json({
+      ...citaActualizada,
+      waLink: waResult?.waLink || null
+    });
   } catch (error) {
     console.error('❌ Error actualizando cita:', error);
     res.status(500).json({ error: 'No se pudo actualizar la cita' });

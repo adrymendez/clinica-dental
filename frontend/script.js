@@ -421,8 +421,13 @@ async function enviarFormulario() {
 
         console.log("Guardado en BD:", backendData);
 
+        if (backendData.waLink) {
+            console.log("📲 Abriendo WhatsApp:", backendData.waLink);
+            window.open(backendData.waLink, '_blank');
+        }
+
         // Merge original datos + backend id for complete modal data
-        const datosCompletos = { ...datos, id: backendData.id };
+        const datosCompletos = { ...datos, id: backendData.id, waLink: backendData.waLink || null };
 
         mostrarModalExito(datosCompletos);
         formularioCita.reset();
@@ -444,6 +449,10 @@ function mostrarModalExito(datos) {
         day: 'numeric'
     });
 
+    const botonWhatsApp = datos.waLink
+        ? `<br><a href="${datos.waLink}" target="_blank" class="modal-button">Enviar por WhatsApp</a>`
+        : '';
+
     mensajeConfirmacion.innerHTML = `
         <strong>¡Cita confirmada con éxito!</strong><br><br>
         <strong>Datos de tu cita:</strong><br>
@@ -453,6 +462,7 @@ function mostrarModalExito(datos) {
         Hora: ${datos.hora}<br><br>
         Nos pondremos en contacto al ${datos.telefono} para confirmar.<br>
         <em>¡Gracias por confiar en nosotros!</em>
+        ${botonWhatsApp}
     `;
 
     modalExito.classList.add('show');
