@@ -189,6 +189,15 @@ async function procesarRecordatorios() {
   }
 }
 
+const trimOrNull = (value) => {
+  if (value === undefined || value === null) return null;
+  const normalized = String(value).trim();
+  return normalized ? normalized : null;
+};
+
+const ok = (res, data, status = 200) => res.status(status).json({ ok: true, data });
+const fail = (res, error, status = 400) => res.status(status).json({ ok: false, error });
+
 async function initDatabase() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS citas (
@@ -217,8 +226,14 @@ async function initDatabase() {
     )
   `);
 
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_medicos_nombre_unique
+    ON medicos (LOWER(TRIM(nombre)))
+  `);
+
   console.log('✅ Tabla "citas" lista');
   console.log('✅ Tabla "medicos" lista');
+  console.log('✅ Índice único de médicos listo');
 }
 
 app.get('/api/health', async (req, res) => {
@@ -238,29 +253,85 @@ app.get('/api/health', async (req, res) => {
 app.get('/api/medicos', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM medicos ORDER BY id DESC');
-    res.json(result.rows);
+    return ok(res, result.rows);
   } catch (error) {
     console.error('❌ Error obteniendo médicos:', error);
-    res.status(500).json({ error: 'Error al obtener médicos' });
+    return fail(res, 'Error al obtener médicos', 500);
   }
 });
 
 app.post('/api/medicos', async (req, res) => {
-  const { nombre, especialidad = null } = req.body;
+  const nombre = trimOrNull(req.body?.nombre);
+  const especialidad = trimOrNull(req.body?.especialidad);
 
-  if (!nombre || !String(nombre).trim()) {
-    return res.status(400).json({ error: 'El nombre del médico es obligatorio' });
+  if (!nombre) {
+    return fail(res, 'El nombre del médico es obligatorio', 400);
   }
 
   try {
+    const duplicate = await pool.query(
+      'SELECT id FROM medicos WHERE LOWER(TRIM(nombre)) = LOWER(TRIM($1)) LIMIT 1',
+      [nombre]
+    );
+
+    if (duplicate.rowCount > 0) {
+      return fail(res, 'Ya existe un médico con ese nombre', 409);
+    }
+
     const result = await pool.query(
       'INSERT INTO medicos (nombre, especialidad) VALUES ($1, $2) RETURNING *',
-      [String(nombre).trim(), especialidad ? String(especialidad).trim() : null]
+      [nombre, especialidad]
     );
-    res.status(201).json(result.rows[0]);
+
+    return ok(res, result.rows[0], 201);
   } catch (error) {
     console.error('❌ Error guardando médico:', error);
-    res.status(500).json({ error: 'Error al guardar médico' });
+    return fail(res, 'Error al guardar médico', 500);
+  }
+});
+
+app.put('/api/medicos/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const nombre = trimOrNull(req.body?.nombre);
+  const especialidad = trimOrNull(req.body?.especialidad);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return fail(res, 'ID de médico inválido', 400);
+  }
+
+  if (!nombre) {
+    return fail(res, 'El nombre del médico es obligatorio', 400);
+  }
+
+  try {
+    const duplicate = await pool.query(
+      `SELECT id FROM medicos 
+       WHERE LOWER(TRIM(nombre)) = LOWER(TRIM($1))
+       AND id <> $2
+       LIMIT 1`,
+      [nombre, id]
+    );
+
+    if (duplicate.rowCount > 0) {
+      return fail(res, 'Ya existe otro médico con ese nombre', 409);
+    }
+
+    const result = await pool.query(
+      `UPDATE medicos
+       SET nombre = $1, especialidad = $2
+       WHERE id = $3
+       RETURNING *`,
+      [nombre, especialidad, id]
+    );
+
+    if (result.rowCount === 0) {
+      return fail(res, 'Médico no encontrado', 404);
+    }
+
+    return ok(res, result.rows[0]);
+  } catch (error) {
+    console.error('❌ Error actualizando médico:', error);
+    return fail(res, 'Error al actualizar médico', 500);
   }
 });
 
@@ -268,7 +339,7 @@ app.delete('/api/medicos/:id', async (req, res) => {
   const id = Number(req.params.id);
 
   if (!Number.isInteger(id) || id <= 0) {
-    return res.status(400).json({ error: 'ID de médico inválido' });
+    return fail(res, 'ID de médico inválido', 400);
   }
 
   try {
@@ -278,37 +349,43 @@ app.delete('/api/medicos/:id', async (req, res) => {
     );
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Médico no encontrado' });
+      return fail(res, 'Médico no encontrado', 404);
     }
 
-    return res.json({ mensaje: 'Médico eliminado correctamente', medico: result.rows[0] });
+    return ok(res, { mensaje: 'Médico eliminado correctamente', medico: result.rows[0] });
   } catch (error) {
     console.error('❌ Error eliminando médico:', error);
-    return res.status(500).json({ error: 'Error al eliminar médico' });
+    return fail(res, 'Error al eliminar médico', 500);
   }
 });
 
 app.get('/api/citas', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM citas ORDER BY id DESC');
-    res.json(result.rows);
+    return ok(res, result.rows);
   } catch (error) {
     console.error('❌ Error obteniendo citas:', error);
-    res.status(500).json({ error: 'No se pudieron obtener las citas' });
+    return fail(res, 'No se pudieron obtener las citas', 500);
   }
 });
 
 app.post('/api/citas', async (req, res) => {
   try {
-    const { nombre, telefono, email, servicio, medico, fecha, hora } = req.body;
+    const nombre = trimOrNull(req.body?.nombre);
+    const telefono = trimOrNull(req.body?.telefono);
+    const email = trimOrNull(req.body?.email);
+    const servicio = trimOrNull(req.body?.servicio);
+    const medico = trimOrNull(req.body?.medico);
+    const fecha = trimOrNull(req.body?.fecha);
+    const hora = trimOrNull(req.body?.hora);
 
     if (!nombre || !telefono || !email || !servicio || !medico || !fecha || !hora) {
-      return res.status(400).json({ error: 'Faltan campos obligatorios para crear la cita' });
+      return fail(res, 'Faltan campos obligatorios para crear la cita', 400);
     }
 
     const telefonoNormalizado = normalizarTelefonoDO(telefono);
     if (!telefonoNormalizado) {
-      return res.status(400).json({ error: 'Teléfono inválido. Debe ser un número dominicano válido con código país +1.' });
+      return fail(res, 'Teléfono inválido. Debe ser un número dominicano válido con código país +1.', 400);
     }
 
     const result = await pool.query(
@@ -332,14 +409,14 @@ app.post('/api/citas', async (req, res) => {
       console.error('[WA][POST] Error inesperado en envío de WhatsApp:', waError);
     }
 
-    res.status(201).json({
+    return ok(res, {
       ...citaCreada,
       waMode: WHATSAPP_MODE,
       waLink: waResult?.waLink || null
-    });
+    }, 201);
   } catch (error) {
     console.error('❌ Error guardando cita:', error);
-    res.status(500).json({ error: 'No se pudo guardar la cita' });
+    return fail(res, 'No se pudo guardar la cita', 500);
   }
 });
 
@@ -347,17 +424,21 @@ app.put('/api/citas/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {
-      return res.status(400).json({ error: 'ID inválido' });
+      return fail(res, 'ID inválido', 400);
     }
 
-    const { nombre, telefono, fecha, hora } = req.body;
+    const nombre = trimOrNull(req.body?.nombre);
+    const telefono = trimOrNull(req.body?.telefono);
+    const fecha = trimOrNull(req.body?.fecha);
+    const hora = trimOrNull(req.body?.hora);
+
     if (!nombre || !telefono || !fecha || !hora) {
-      return res.status(400).json({ error: 'Faltan campos obligatorios para actualizar la cita' });
+      return fail(res, 'Faltan campos obligatorios para actualizar la cita', 400);
     }
 
     const telefonoNormalizado = normalizarTelefonoDO(telefono);
     if (!telefonoNormalizado) {
-      return res.status(400).json({ error: 'Teléfono inválido. Debe ser un número dominicano válido con código país +1.' });
+      return fail(res, 'Teléfono inválido. Debe ser un número dominicano válido con código país +1.', 400);
     }
 
     const result = await pool.query(
@@ -369,7 +450,7 @@ app.put('/api/citas/:id', async (req, res) => {
     );
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Cita no encontrada' });
+      return fail(res, 'Cita no encontrada', 404);
     }
 
     const citaActualizada = result.rows[0];
@@ -387,14 +468,14 @@ app.put('/api/citas/:id', async (req, res) => {
       console.error('[WA][PUT] Error inesperado en envío de WhatsApp:', waError);
     }
 
-    res.json({
+    return ok(res, {
       ...citaActualizada,
       waMode: WHATSAPP_MODE,
       waLink: waResult?.waLink || null
     });
   } catch (error) {
     console.error('❌ Error actualizando cita:', error);
-    res.status(500).json({ error: 'No se pudo actualizar la cita' });
+    return fail(res, 'No se pudo actualizar la cita', 500);
   }
 });
 
@@ -402,19 +483,19 @@ app.delete('/api/citas/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {
-      return res.status(400).json({ error: 'ID inválido' });
+      return fail(res, 'ID inválido', 400);
     }
 
     const result = await pool.query('DELETE FROM citas WHERE id = $1 RETURNING id', [id]);
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Cita no encontrada' });
+      return fail(res, 'Cita no encontrada', 404);
     }
 
-    res.json({ mensaje: 'Cita eliminada', id });
+    return ok(res, { mensaje: 'Cita eliminada', id });
   } catch (error) {
     console.error('❌ Error eliminando cita:', error);
-    res.status(500).json({ error: 'No se pudo eliminar la cita' });
+    return fail(res, 'No se pudo eliminar la cita', 500);
   }
 });
 

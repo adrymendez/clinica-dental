@@ -1,37 +1,51 @@
-# TODO - Sincronización de Médicos (PostgreSQL + Render)
+# TODO - Refactorización completa clínica dental
 
-- [ ] Fase 1 — Backend `backend/server.js`
-  - [ ] Crear tabla `medicos` en `initDatabase`:
-    - [ ] `id SERIAL PRIMARY KEY`
-    - [ ] `nombre TEXT NOT NULL`
-    - [ ] `especialidad TEXT`
-  - [ ] Agregar endpoint `GET /api/medicos` leyendo PostgreSQL (`ORDER BY id DESC`)
-  - [ ] Agregar endpoint `POST /api/medicos` para alta desde admin
-  - [ ] Validación manual endpoint desplegado Render:
-    - [ ] `https://clinica-dental-gyyo.onrender.com/api/medicos`
+## 1) Backend (server.js)
+- [x] Unificar respuestas JSON a formato `{ ok: true, data }` y `{ ok: false, error }` en endpoints CRUD de médicos y citas.
+- [x] Implementar `PUT /api/medicos/:id` con:
+  - [x] validación de ID entero positivo
+  - [x] validación de nombre no vacío
+  - [x] validación y normalización de especialidad
+  - [x] control de duplicados case-insensitive + trim
+  - [x] retorno del médico actualizado
+- [x] Mejorar validaciones en `POST /api/medicos`, `POST /api/citas`, `PUT /api/citas/:id`.
+- [x] Asegurar init DB:
+  - [x] tabla `medicos`
+  - [x] tabla `citas`
+  - [x] índice único `idx_medicos_nombre_unique` sobre `LOWER(TRIM(nombre))`.
 
-- [ ] Fase 2 — Frontend `frontend/script.js` (híbrido temporal con fallback)
-  - [ ] Reemplazar `cargarMedicos()` para priorizar API de Render
-  - [ ] Agregar `console.log(data)` de diagnóstico en carga de médicos
-  - [ ] Crear/ajustar render dinámico de médicos desde backend en:
-    - [ ] select de formulario (`#medico`)
-    - [ ] filtro admin (`#filterMedico`)
-    - [ ] listado admin (`#listaMedicos`)
-  - [ ] Mantener fallback temporal local únicamente si API falla o vacía
+## 2) SQL
+- [x] Crear archivo SQL con script de creación/verificación de tablas e índice único.
 
-- [ ] Fase 3 — Admin sincronizado
-  - [ ] Cambiar submit de `formAddDoctor` para usar `POST /api/medicos`
-  - [ ] Después de guardar médico ejecutar recarga:
-    - [ ] `await guardarMedico();`
-    - [ ] `await cargarMedicos();`
-  - [ ] Verificar que admin y pacientes ven la misma lista tras alta
+## 3) Frontend JS (script.js)
+- [ ] Eliminar completamente `MEDICOS_FALLBACK` y cualquier fallback/localStorage de médicos.
+- [ ] Cargar médicos exclusivamente desde `/api/medicos`.
+- [ ] Completar CRUD médicos desde admin:
+  - [ ] crear (POST)
+  - [ ] editar (PUT)
+  - [ ] eliminar (DELETE)
+- [ ] UI de edición de médicos (nombre + especialidad) en lista admin.
+- [ ] Reemplazar `alert()` por mensajes visuales de feedback.
+- [ ] Mantener edición de citas y asegurar refresco automático de datos.
 
-- [ ] Fase 4 — Migración final sin hardcodeo/localStorage
-  - [ ] Eliminar arrays hardcodeados de médicos
-  - [ ] Eliminar uso persistente de `localStorage` para médicos
-  - [ ] Dejar médicos únicamente en PostgreSQL vía backend Render
+## 4) Frontend HTML (index.html)
+- [ ] Mejorar panel admin de médicos (inputs y acciones editar/eliminar con especialidad).
+- [ ] Agregar sección de ubicación con iframe de Google Maps.
+- [ ] Agregar redes sociales (WhatsApp, Instagram, Facebook).
+- [ ] Mejorar footer profesional (dirección, teléfono, redes, copyright).
 
-- [ ] Diagnóstico obligatorio
-  - [ ] Confirmar que frontend NO apunta a localhost
-  - [ ] Confirmar que backend activo es Render
-  - [ ] Confirmar que no hay endpoint alterno para médicos en el proyecto
+## 5) Frontend CSS (styles.css)
+- [ ] Agregar estilos para:
+  - [ ] mapa responsive
+  - [ ] iconos/redes con hover
+  - [ ] feedback visual éxito/error
+  - [ ] panel admin mejorado de médicos
+- [ ] Mantener estilo base y paleta actual.
+
+## 6) Verificación final
+- [ ] Revisar consistencia de nombres de campos frontend/backend.
+- [ ] Revisar funcionamiento de médicos dinámicos en:
+  - [ ] select del formulario
+  - [ ] filtro admin
+  - [ ] lista admin
+- [ ] Confirmar ausencia total de médicos hardcodeados.
