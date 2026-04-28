@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clínica Dental Sonrisa Perfecta</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
 <body>
-    <!-- Encabezado con Menú -->
     <header class="header">
         <div class="container">
             <div class="logo">
@@ -18,19 +18,17 @@
                 <a href="#servicios" class="nav-link">Servicios</a>
                 <a href="#nosotros" class="nav-link">Nosotros</a>
                 <a href="#contacto" class="nav-link">Contacto</a>
+                <a href="#" id="linkUbicacion" class="nav-link">Ubicación</a>
                 <a href="#paciente" class="nav-link">Paciente</a>
                 <a href="#admin" class="nav-link">Admin</a>
                 <button class="nav-cta" id="navCita">Agenda Cita</button>
             </nav>
             <div class="hamburger" id="hamburger">
-                <span></span>
-                <span></span>
-                <span></span>
+                <span></span><span></span><span></span>
             </div>
         </div>
     </header>
 
-    <!-- Sección Héroe -->
     <section class="hero" id="inicio">
         <div class="hero-content">
             <h2 class="hero-title">Tu Sonrisa es Nuestra Prioridad</h2>
@@ -44,7 +42,6 @@
         </div>
     </section>
 
-    <!-- Sección Servicios -->
     <section class="servicios" id="servicios">
         <div class="container">
             <h2 class="section-title">Nuestros Servicios</h2>
@@ -73,7 +70,6 @@
         </div>
     </section>
 
-    <!-- Sección Nosotros -->
     <section class="nosotros" id="nosotros">
         <div class="container">
             <h2 class="section-title">Sobre Nosotros</h2>
@@ -84,24 +80,14 @@
                     <p>Utilizamos tecnología de punta y mantenemos los más altos estándares de higiene y bioseguridad para garantizar tu comodidad y seguridad.</p>
                 </div>
                 <div class="nosotros-stats">
-                    <div class="stat">
-                        <h4>+5000</h4>
-                        <p>Pacientes Felices</p>
-                    </div>
-                    <div class="stat">
-                        <h4>+15</h4>
-                        <p>Años Experiencia</p>
-                    </div>
-                    <div class="stat">
-                        <h4>100%</h4>
-                        <p>Satisfacción</p>
-                    </div>
+                    <div class="stat"><h4>+5000</h4><p>Pacientes Felices</p></div>
+                    <div class="stat"><h4>+15</h4><p>Años Experiencia</p></div>
+                    <div class="stat"><h4>100%</h4><p>Satisfacción</p></div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Sección Contacto y Formulario -->
     <section class="contacto" id="contacto">
         <div class="container">
             <h2 class="section-title">Reserva Tu Cita</h2>
@@ -112,19 +98,16 @@
                         <input type="text" id="nombre" name="nombre" required placeholder="Tu nombre">
                         <span class="error-message" id="errorNombre"></span>
                     </div>
-
                     <div class="form-group">
                         <label for="telefono">Teléfono</label>
                         <input type="tel" id="telefono" name="telefono" required placeholder="Tu teléfono">
                         <span class="error-message" id="errorTelefono"></span>
                     </div>
-
                     <div class="form-group">
                         <label for="email">Correo Electrónico</label>
                         <input type="email" id="email" name="email" required placeholder="tu@email.com">
                         <span class="error-message" id="errorEmail"></span>
                     </div>
-
                     <div class="form-group">
                         <label for="servicio">Servicio</label>
                         <select id="servicio" name="servicio" required>
@@ -136,7 +119,6 @@
                         </select>
                         <span class="error-message" id="errorServicio"></span>
                     </div>
-
                     <div class="form-group">
                         <label for="medico">Médico</label>
                         <select id="medico" name="medico" required>
@@ -144,28 +126,25 @@
                         </select>
                         <span class="error-message" id="errorMedico"></span>
                     </div>
-
                     <div class="form-row">
                         <div class="form-group">
                             <label for="fecha">Fecha</label>
                             <input type="date" id="fecha" name="fecha" required>
                             <span class="error-message" id="errorFecha"></span>
                         </div>
-
                         <div class="form-group">
                             <label for="hora">Hora</label>
                             <input type="time" id="hora" name="hora" required>
                             <span class="error-message" id="errorHora"></span>
                         </div>
                     </div>
-
                     <button type="submit" class="submit-button">Confirmar Cita</button>
                 </form>
             </div>
+
         </div>
     </section>
 
-    <!-- Sección Paciente -->
     <section class="paciente" id="paciente">
         <div class="container">
             <h2 class="section-title">Área del Paciente</h2>
@@ -178,7 +157,6 @@
                     </div>
                     <button type="submit" class="submit-button">Buscar Citas</button>
                 </form>
-
                 <div id="resultadosPaciente" class="formulario" style="margin-top:20px; display:none;">
                     <h3>Mis Citas</h3>
                     <div id="listaCitasPaciente"></div>
@@ -187,23 +165,17 @@
         </div>
     </section>
 
-    <!-- Modal de Éxito -->
     <div class="modal" id="modalExito">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>¡Cita Agendada!</h3>
                 <button class="modal-close" id="closeModal">&times;</button>
             </div>
-            <div class="modal-body">
-                <p id="mensajeConfirmacion"></p>
-            </div>
-            <div class="modal-footer">
-                <button class="modal-button" id="closeModalBtn">Cerrar</button>
-            </div>
+            <div class="modal-body"><p id="mensajeConfirmacion"></p></div>
+            <div class="modal-footer"><button class="modal-button" id="closeModalBtn">Cerrar</button></div>
         </div>
     </div>
 
-    <!-- Modal Login Admin -->
     <div class="modal" id="modalAdminLogin">
         <div class="modal-content">
             <div class="modal-header">
@@ -223,7 +195,21 @@
             </div>
         </div>
     </div>
-    <!-- Área de Administrador (oculta hasta login) -->
+
+    <div class="modal" id="confirmModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="confirmModalTitle">Confirmar acción</h3>
+                <button class="modal-close" id="closeConfirmModal">&times;</button>
+            </div>
+            <div class="modal-body"><p id="confirmModalMessage"></p></div>
+            <div class="modal-footer" style="gap:10px;">
+                <button class="modal-button" id="confirmModalCancel">Cancelar</button>
+                <button class="modal-button" id="confirmModalAccept">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
     <section class="admin hidden" id="admin">
         <div class="container">
             <h2 class="section-title">Panel Administrador - Citas Agendadas</h2>
@@ -231,9 +217,7 @@
             <div class="admin-controls">
                 <div class="filter-group">
                     <label for="filterMedico">Filtrar por médico</label>
-                    <select id="filterMedico">
-                        <option value="">Todos los médicos</option>
-                    </select>
+                    <select id="filterMedico"><option value="">Todos los médicos</option></select>
                 </div>
                 <div class="admin-actions">
                     <button id="exportCsv" class="modal-button">Exportar CSV</button>
@@ -246,18 +230,11 @@
                 <table class="admin-table" id="tablaCitas">
                     <thead>
                         <tr>
-                            <th>Paciente</th>
-                            <th>Teléfono</th>
-                            <th>Correo</th>
-                            <th>Servicio</th>
-                            <th>Médico</th>
-                            <th>Fecha</th>
-                            <th>Hora</th>
-                            <th>Acciones</th>
+                            <th>Paciente</th><th>Teléfono</th><th>Correo</th><th>Servicio</th>
+                            <th>Médico</th><th>Fecha</th><th>Hora</th><th>Acciones</th>
                         </tr>
                     </thead>
-                    <tbody>
-                    </tbody>
+                    <tbody></tbody>
                 </table>
             </div>
 
@@ -265,27 +242,13 @@
                 <form id="formEditarCita" class="formulario">
                     <h3 style="margin-bottom:12px;">Editar cita seleccionada</h3>
                     <div class="form-row">
-                        <div class="form-group">
-                            <label for="editNombre">Nombre</label>
-                            <input type="text" id="editNombre" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="editTelefono">Teléfono</label>
-                            <input type="text" id="editTelefono" required>
-                        </div>
+                        <div class="form-group"><label for="editNombre">Nombre</label><input type="text" id="editNombre" required></div>
+                        <div class="form-group"><label for="editTelefono">Teléfono</label><input type="text" id="editTelefono" required></div>
                     </div>
-
                     <div class="form-row">
-                        <div class="form-group">
-                            <label for="editFecha">Fecha</label>
-                            <input type="date" id="editFecha" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="editHora">Hora</label>
-                            <input type="time" id="editHora" required>
-                        </div>
+                        <div class="form-group"><label for="editFecha">Fecha</label><input type="date" id="editFecha" required></div>
+                        <div class="form-group"><label for="editHora">Hora</label><input type="time" id="editHora" required></div>
                     </div>
-
                     <div style="display:flex; gap:10px; justify-content:flex-end;">
                         <button type="button" class="modal-button" id="btnCancelarEdicion" style="display:none;">Cancelar edición</button>
                         <button type="submit" class="modal-button" id="btnGuardarCitaAdmin">Guardar cita</button>
@@ -297,6 +260,7 @@
             <div class="doctors-manage">
                 <form id="formAddDoctor" class="form-inline">
                     <input type="text" id="newDoctor" placeholder="Nombre del médico" required>
+                    <input type="text" id="newDoctorEspecialidad" placeholder="Especialidad">
                     <button type="submit" class="modal-button">Añadir Médico</button>
                 </form>
                 <ul id="listaMedicos" class="doctor-list"></ul>
@@ -304,13 +268,29 @@
         </div>
     </section>
 
-    <!-- Pie de página -->
     <footer class="footer">
-        <div class="container">
-            <p>&copy; 🦷Clínica Dental Miguel Mendez. Todos los derechos reservados.</p>
-            <p>Contacto:centrodontomendez@gmail.com | Teléfono: (809) 529-8188 </p>
+        <div class="container footer-grid">
+            <div>
+                <h4>Centro Odontológico Dr. Miguel Mendez</h4>
+                <p><i class="fa-solid fa-location-dot"></i> C. Francisco del Rosario Sánchez 127, San Pedro de Macorís 21000</p>
+                <p><i class="fa-solid fa-phone"></i> (809) 529-8188</p>
+                <p><i class="fa-solid fa-envelope"></i> centrodontomendez@gmail.com</p>
+            </div>
+            <div>
+                <h4>Redes Sociales</h4>
+                <div class="social-links">
+                    <a href="https://wa.me/18095298188" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+                    <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+                    <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Clínica Dental Miguel Mendez. Todos los derechos reservados.</p>
         </div>
     </footer>
+
+    <div id="toastContainer"></div>
 
     <script src="script.js"></script>
 </body>
