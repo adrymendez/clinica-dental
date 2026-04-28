@@ -27,7 +27,7 @@ const WHATSAPP_MODE = (process.env.WHATSAPP_MODE || 'wa_me').toLowerCase();
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || '';
 const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
 const WHATSAPP_VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || '';
-const SECRETARIA_TEL = process.env.SECRETARIA_TEL || '+18494555038';
+const SECRETARIA_TEL = process.env.SECRETARIA_TEL || '+18095298188';
 
 function normalizarTelefonoDO(telefono = '') {
   const digits = String(telefono).replace(/\D/g, '');
