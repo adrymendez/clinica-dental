@@ -231,9 +231,23 @@ async function initDatabase() {
     ON medicos (LOWER(TRIM(nombre)))
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS servicios (
+      id SERIAL PRIMARY KEY,
+      nombre TEXT NOT NULL UNIQUE
+    )
+  `);
+
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_servicios_nombre_unique
+    ON servicios (LOWER(TRIM(nombre)))
+  `);
+
   console.log('✅ Tabla "citas" lista');
   console.log('✅ Tabla "medicos" lista');
   console.log('✅ Índice único de médicos listo');
+  console.log('✅ Tabla "servicios" lista');
+  console.log('✅ Índice único de servicios listo');
 }
 
 app.get('/api/health', async (req, res) => {
@@ -356,6 +370,113 @@ app.delete('/api/medicos/:id', async (req, res) => {
   } catch (error) {
     console.error('❌ Error eliminando médico:', error);
     return fail(res, 'Error al eliminar médico', 500);
+  }
+});
+
+app.get('/api/servicios', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM servicios ORDER BY id DESC');
+    return ok(res, result.rows);
+  } catch (error) {
+    console.error('❌ Error obteniendo servicios:', error);
+    return fail(res, 'Error al obtener servicios', 500);
+  }
+});
+
+app.post('/api/servicios', async (req, res) => {
+  const nombre = trimOrNull(req.body?.nombre);
+
+  if (!nombre) {
+    return fail(res, 'El nombre del servicio es obligatorio', 400);
+  }
+
+  try {
+    const duplicate = await pool.query(
+      'SELECT id FROM servicios WHERE LOWER(TRIM(nombre)) = LOWER(TRIM($1)) LIMIT 1',
+      [nombre]
+    );
+
+    if (duplicate.rowCount > 0) {
+      return fail(res, 'Ya existe un servicio con ese nombre', 409);
+    }
+
+    const result = await pool.query(
+      'INSERT INTO servicios (nombre) VALUES ($1) RETURNING *',
+      [nombre]
+    );
+
+    return ok(res, result.rows[0], 201);
+  } catch (error) {
+    console.error('❌ Error guardando servicio:', error);
+    return fail(res, 'Error al guardar servicio', 500);
+  }
+});
+
+app.put('/api/servicios/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const nombre = trimOrNull(req.body?.nombre);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return fail(res, 'ID de servicio inválido', 400);
+  }
+
+  if (!nombre) {
+    return fail(res, 'El nombre del servicio es obligatorio', 400);
+  }
+
+  try {
+    const duplicate = await pool.query(
+      `SELECT id FROM servicios
+       WHERE LOWER(TRIM(nombre)) = LOWER(TRIM($1))
+       AND id <> $2
+       LIMIT 1`,
+      [nombre, id]
+    );
+
+    if (duplicate.rowCount > 0) {
+      return fail(res, 'Ya existe otro servicio con ese nombre', 409);
+    }
+
+    const result = await pool.query(
+      `UPDATE servicios
+       SET nombre = $1
+       WHERE id = $2
+       RETURNING *`,
+      [nombre, id]
+    );
+
+    if (result.rowCount === 0) {
+      return fail(res, 'Servicio no encontrado', 404);
+    }
+
+    return ok(res, result.rows[0]);
+  } catch (error) {
+    console.error('❌ Error actualizando servicio:', error);
+    return fail(res, 'Error al actualizar servicio', 500);
+  }
+});
+
+app.delete('/api/servicios/:id', async (req, res) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return fail(res, 'ID de servicio inválido', 400);
+  }
+
+  try {
+    const result = await pool.query(
+      'DELETE FROM servicios WHERE id = $1 RETURNING id, nombre',
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      return fail(res, 'Servicio no encontrado', 404);
+    }
+
+    return ok(res, { mensaje: 'Servicio eliminado correctamente', servicio: result.rows[0] });
+  } catch (error) {
+    console.error('❌ Error eliminando servicio:', error);
+    return fail(res, 'Error al eliminar servicio', 500);
   }
 });
 

@@ -1,29 +1,12 @@
-# TODO - Reparación Frontend Sistema de Citas Médicas
+# TODO - Servicios dinámicos (CRUD completo)
 
-- [ ] Analizar y corregir `frontend/script.js`:
-  - [ ] Eliminar fallback de médicos (`MEDICOS_FALLBACK`, `usarMedicosLocales`).
-  - [ ] Implementar helper API para formato `{ ok, data }`.
-  - [ ] Rehacer `cargarMedicos()` usando solo `GET /api/medicos`.
-  - [ ] Corregir `renderDoctorSelects()` (select formulario + filtro admin dinámicos).
-  - [ ] Rehacer `renderDoctorsList()` con UI de CRUD completo.
-  - [ ] Implementar agregar médico (POST) con validación de duplicados.
-  - [ ] Implementar editar médico inline (PUT).
-  - [ ] Implementar eliminar médico con confirmación visual (sin `confirm()` nativo).
-  - [ ] Reemplazar `alert()` por toasts en flujos de médicos (y errores principales UX).
-- [ ] Actualizar `frontend/index.html`:
-  - [ ] Agregar contenedor de toasts.
-  - [ ] Mejorar panel de médicos (nombre + especialidad + lista editable).
-  - [ ] Agregar sección de ubicación con Google Maps responsive.
-  - [ ] Agregar redes sociales (WhatsApp, Instagram, Facebook) con FontAwesome.
-  - [ ] Actualizar footer profesional (dirección/teléfono/redes/copyright).
-- [ ] Actualizar `frontend/styles.css`:
-  - [ ] Estilos de toasts.
-  - [ ] Estilos modal confirmación.
-  - [ ] Estilos mapa responsive.
-  - [ ] Estilos redes sociales.
-  - [ ] Estilos footer profesional.
-  - [ ] Estilos edición inline de médicos.
-- [ ] Verificaciones finales:
-  - [ ] Sin fallback/hardcode de médicos.
-  - [ ] Refresco automático tras CRUD.
-  - [ ] Manejo de errores correcto y UX visual profesional.
+- [x] Confirmar plan con el usuario
+- [ ] Backend: crear tabla `servicios` + índice único case-insensitive
+- [ ] Backend: implementar endpoints `/api/servicios` (GET, POST, PUT, DELETE)
+- [ ] Frontend HTML: quitar servicios hardcodeados del `<select id="servicio">`
+- [ ] Frontend HTML: agregar sección admin de servicios (`formAddServicio`, `newServicio`, `listaServicios`)
+- [ ] Frontend JS: agregar estado global y funciones `cargarServicios`, `renderServiciosSelect`, `renderServiciosList`
+- [ ] Frontend JS: implementar crear/editar/eliminar servicios con recarga automática `await cargarServicios()`
+- [ ] Frontend JS: evitar duplicados y mostrar mensajes visuales (sin `alert()`)
+- [ ] Inicialización: cargar servicios al arrancar app
+- [ ] Revisión final de consistencia

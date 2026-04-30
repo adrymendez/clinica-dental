@@ -43,6 +43,10 @@ const editHora = document.getElementById('editHora');
 const btnGuardarCitaAdmin = document.getElementById('btnGuardarCitaAdmin');
 const btnCancelarEdicion = document.getElementById('btnCancelarEdicion');
 
+const formAddServicio = document.getElementById('formAddServicio');
+const inputNewServicio = document.getElementById('newServicio');
+const listaServicios = document.getElementById('listaServicios');
+
 // UX visual
 const toastContainer = document.getElementById('toastContainer');
 const confirmModal = document.getElementById('confirmModal');
@@ -53,6 +57,7 @@ const confirmModalAccept = document.getElementById('confirmModalAccept');
 const closeConfirmModal = document.getElementById('closeConfirmModal');
 
 let medicos = [];
+let servicios = [];
 let citas = [];
 let citaEditandoId = null;
 
@@ -617,23 +622,67 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 /* ======================= ANIMACIONES AL SCROLL ======================= */
 
 const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
+    threshold: 0.15,
+    rootMargin: '0px 0px -40px 0px'
 };
 
-const observer = new IntersectionObserver(function(entries) {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.style.animation = 'slideUp 0.6s ease-out forwards';
-            observer.unobserve(entry.target);
+const revealCards = document.querySelectorAll('.servicio-card.reveal');
+
+if ('IntersectionObserver' in window && revealCards.length) {
+    const observer = new IntersectionObserver(function(entries, obs) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                obs.unobserve(entry.target);
+            }
+        });
+    }, observerOptions);
+
+    revealCards.forEach(card => {
+        observer.observe(card);
+    });
+}
+
+if (typeof Swiper !== 'undefined') {
+    new Swiper('.servicios-slider', {
+        effect: 'coverflow',
+        grabCursor: true,
+        centeredSlides: true,
+        slidesPerView: 1,
+        loop: true,
+        speed: 480,
+        spaceBetween: 20,
+        coverflowEffect: {
+            rotate: 0,
+            stretch: 0,
+            depth: 120,
+            modifier: 1.25,
+            slideShadows: false
+        },
+        pagination: {
+            el: '.servicios-swiper-pagination',
+            clickable: true
+        },
+        navigation: {
+            nextEl: '.servicios-swiper-next',
+            prevEl: '.servicios-swiper-prev'
+        },
+        breakpoints: {
+            640: {
+                slidesPerView: 1.2,
+                spaceBetween: 18
+            },
+            768: {
+                slidesPerView: 2,
+                spaceBetween: 20
+            },
+            1024: {
+                slidesPerView: 3,
+                spaceBetween: 26
+            }
         }
     });
-}, observerOptions);
-
-document.querySelectorAll('.servicio-card').forEach(card => {
-    card.style.opacity = '0';
-    observer.observe(card);
-});
+}
 
 /* ======================= INICIALIZACIÓN ======================= */
 
@@ -641,7 +690,7 @@ window.addEventListener('load', function() {
     configurarRangoFechas();
     actualizarHorasDisponibles();
 
-    const elementos = document.querySelectorAll('.hero-content, .servicios-grid');
+    const elementos = document.querySelectorAll('.hero-content, .servicios-slider');
     elementos.forEach(elemento => {
         elemento.style.animation = 'fadeIn 0.8s ease-out';
     });
@@ -907,6 +956,212 @@ formAddDoctor && formAddDoctor.addEventListener('submit', async function(e) {
     }
 });
 
+/* ======================= MÓDULO SERVICIOS (SOLO BACKEND) ======================= */
+
+function mapServiciosBackendToUI(lista) {
+    return (lista || []).map((s) => ({
+        id: Number(s.id),
+        nombre: String(s.nombre || '').trim()
+    }));
+}
+
+async function cargarServicios() {
+    try {
+        const data = await apiRequest('/servicios');
+        servicios = mapServiciosBackendToUI(Array.isArray(data) ? data : []);
+        renderServiciosSelect();
+        renderServiciosList();
+    } catch (error) {
+        console.error('Error cargando servicios desde API:', error);
+        servicios = [];
+        renderServiciosSelect();
+        renderServiciosList();
+        showToast(error.message || 'No se pudieron cargar los servicios', 'error');
+    }
+}
+
+function renderServiciosSelect() {
+    if (!inputServicio) return;
+    const seleccionado = inputServicio.value;
+    inputServicio.innerHTML = '<option value="">Selecciona un servicio</option>';
+
+    servicios.forEach((s) => {
+        const opt = document.createElement('option');
+        opt.value = s.nombre;
+        opt.textContent = s.nombre;
+        inputServicio.appendChild(opt);
+    });
+
+    if ([...inputServicio.options].some((o) => o.value === seleccionado)) {
+        inputServicio.value = seleccionado;
+    }
+}
+
+function createServicioViewItem(servicio) {
+    const li = document.createElement('li');
+    li.className = 'doctor-item';
+
+    const info = document.createElement('div');
+    info.className = 'doctor-main-info';
+
+    const name = document.createElement('strong');
+    name.textContent = servicio.nombre;
+    info.appendChild(name);
+
+    const actions = document.createElement('div');
+    actions.className = 'doctor-actions';
+
+    const btnEdit = document.createElement('button');
+    btnEdit.className = 'modal-button small';
+    btnEdit.textContent = 'Editar';
+    btnEdit.addEventListener('click', () => enableServicioInlineEdit(li, servicio));
+
+    const btnDelete = document.createElement('button');
+    btnDelete.className = 'modal-button small danger';
+    btnDelete.textContent = 'Eliminar';
+    btnDelete.addEventListener('click', async () => {
+        const okDelete = await confirmAction({
+            title: 'Eliminar servicio',
+            message: `¿Deseas eliminar "${servicio.nombre}"?`
+        });
+        if (!okDelete) return;
+
+        try {
+            await apiRequest(`/servicios/${servicio.id}`, { method: 'DELETE' });
+            await cargarServicios();
+            showToast('Servicio eliminado correctamente', 'success');
+        } catch (error) {
+            console.error('Error eliminando servicio:', error);
+            showToast(error.message || 'No se pudo eliminar el servicio', 'error');
+        }
+    });
+
+    actions.appendChild(btnEdit);
+    actions.appendChild(btnDelete);
+
+    li.appendChild(info);
+    li.appendChild(actions);
+
+    return li;
+}
+
+function enableServicioInlineEdit(container, servicio) {
+    container.innerHTML = '';
+    container.classList.add('editing');
+
+    const editWrap = document.createElement('div');
+    editWrap.className = 'doctor-inline-edit';
+
+    const inputNombreEdit = document.createElement('input');
+    inputNombreEdit.type = 'text';
+    inputNombreEdit.value = servicio.nombre;
+    inputNombreEdit.placeholder = 'Nombre del servicio';
+
+    const actions = document.createElement('div');
+    actions.className = 'doctor-actions';
+
+    const btnSave = document.createElement('button');
+    btnSave.className = 'modal-button small';
+    btnSave.textContent = 'Guardar';
+
+    const btnCancel = document.createElement('button');
+    btnCancel.className = 'modal-button small';
+    btnCancel.textContent = 'Cancelar';
+
+    btnSave.addEventListener('click', async () => {
+        const nombre = inputNombreEdit.value.trim();
+
+        if (!nombre) {
+            showToast('El nombre del servicio es obligatorio', 'error');
+            return;
+        }
+
+        const duplicado = servicios.some((s) => s.id !== servicio.id && s.nombre.toLowerCase() === nombre.toLowerCase());
+        if (duplicado) {
+            showToast('Ya existe otro servicio con ese nombre', 'error');
+            return;
+        }
+
+        try {
+            await apiRequest(`/servicios/${servicio.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre })
+            });
+
+            await cargarServicios();
+            showToast('Servicio actualizado correctamente', 'success');
+        } catch (error) {
+            console.error('Error actualizando servicio:', error);
+            showToast(error.message || 'No se pudo actualizar el servicio', 'error');
+        }
+    });
+
+    btnCancel.addEventListener('click', () => {
+        renderServiciosList();
+    });
+
+    actions.appendChild(btnSave);
+    actions.appendChild(btnCancel);
+
+    editWrap.appendChild(inputNombreEdit);
+    editWrap.appendChild(actions);
+
+    container.appendChild(editWrap);
+}
+
+function renderServiciosList() {
+    if (!listaServicios) return;
+    listaServicios.innerHTML = '';
+
+    if (!servicios.length) {
+        const empty = document.createElement('li');
+        empty.className = 'doctor-item-empty';
+        empty.textContent = 'No hay servicios registrados.';
+        listaServicios.appendChild(empty);
+        return;
+    }
+
+    servicios.forEach((s) => {
+        listaServicios.appendChild(createServicioViewItem(s));
+    });
+}
+
+async function guardarServicio() {
+    const nombre = (inputNewServicio?.value || '').trim();
+
+    if (!nombre) {
+        showToast('Debes ingresar el nombre del servicio', 'error');
+        return;
+    }
+
+    const existe = servicios.some((s) => s.nombre.toLowerCase() === nombre.toLowerCase());
+    if (existe) {
+        showToast('El servicio ya existe', 'error');
+        return;
+    }
+
+    await apiRequest('/servicios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre })
+    });
+
+    await cargarServicios();
+    inputNewServicio.value = '';
+    showToast('Servicio agregado correctamente', 'success');
+}
+
+formAddServicio && formAddServicio.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    try {
+        await guardarServicio();
+    } catch (error) {
+        console.error('Error guardando servicio:', error);
+        showToast(error.message || 'No se pudo guardar el servicio', 'error');
+    }
+});
+
 /* ======================= ADMIN CITAS ======================= */
 
 function resetFormularioEdicionAdmin() {
@@ -1138,6 +1393,7 @@ if (editFecha) {
 
 async function inicializarApp() {
     await cargarMedicos();
+    await cargarServicios();
     await cargarCitasDesdeBD();
     configurarRangoFechas();
     actualizarHorasDisponibles();
@@ -1198,6 +1454,7 @@ function showAdminSection() {
     renderCitasTable();
     renderDoctorSelects();
     renderDoctorsList();
+    renderServiciosList();
 }
 
 function hideAdminSection() {

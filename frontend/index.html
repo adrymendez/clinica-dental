@@ -4,14 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clínica Dental Sonrisa Perfecta</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
 <body>
     <header class="header">
         <div class="container">
             <div class="logo">
-                <h1><img src="img/Logounico.png" alt="" style="width:45px;height:45px;vertical-align:middle;margin-right:8px;">Centro Odontológico Dr.Miguel Mendez</h1>
+                <h1><img src="img/Titulo.png" alt="" class="logo-img"></h1>
             </div>
             <nav class="nav">
                 <a href="#inicio" class="nav-link">Inicio</a>
@@ -37,7 +41,7 @@
         </div>
         <div class="hero-image">
             <div class="image-placeholder">
-                <img src="img/Logounico.png" alt="Icono Diente" style="width:500px;height:500px;display:block;margin:auto;">
+                <img src="img/logoflotante.png" alt="Icono Diente" class="hero-main-image floating-logo">
             </div>
         </div>
     </section>
@@ -45,27 +49,54 @@
     <section class="servicios" id="servicios">
         <div class="container">
             <h2 class="section-title">Nuestros Servicios</h2>
-            <div class="servicios-grid">
-                <div class="servicio-card">
-                    <div class="servicio-icon"><img src="img/diente.png" alt="Limpieza Dental" style="width:100px;height:100px;"></div>
-                    <h3>Limpieza Dental</h3>
-                    <p>Limpieza profesional completa con ultrasonido y pulido para una sonrisa radiante</p>
+            <p class="servicios-intro">Tratamientos modernos con enfoque clínico, estético y preventivo.</p>
+
+            <div class="swiper servicios-slider">
+                <div class="swiper-wrapper">
+                    <div class="swiper-slide">
+                        <article class="servicio-slide-card">
+                            <img src="img/Imgservicios1.png" alt="Limpieza Dental" class="servicio-image" loading="lazy">
+                            <div class="overlay">
+                                <h3>Implantóloga</h3>
+                                <p><!-- <p></p> aqui va la descripcion del servicio de implantes, que es el servicio principal de la clinica, por lo que se le dara una descripcion mas detallada y completa.</p> --></p>
+                            </div>
+                        </article>
+                    </div>
+
+                    <div class="swiper-slide">
+                        <article class="servicio-slide-card">
+                            <img src="img/Imgservicios2.png" alt="Ortodoncia" class="servicio-image" loading="lazy">
+                            <div class="overlay">
+                                <h3>Rehabilitacion Estetica</h3>
+                                <p><!-- <p></p> aqui va la descripcion del servicio de implantes, que es el servicio principal de la clinica, por lo que se le dara una descripcion mas detallada y completa.</p> --></p>
+                            </div>
+                        </article>
+                    </div>
+
+                    <div class="swiper-slide">
+                        <article class="servicio-slide-card">
+                            <img src="img/implantes.png" alt="Implantes Dentales" class="servicio-image" loading="lazy">
+                            <div class="overlay">
+                                <h3>Implantes</h3>
+                                <!-- <p></p> aqui va la descripcion del servicio de implantes, que es el servicio principal de la clinica, por lo que se le dara una descripcion mas detallada y completa.</p> -->
+                            </div>
+                        </article>
+                    </div>
+
+                    <div class="swiper-slide">
+                        <article class="servicio-slide-card">
+                            <img src="img/Imgservicios3.png" alt="Blanqueamiento Dental" class="servicio-image" loading="lazy">
+                            <div class="overlay">
+                                <h3>Cirujana Bucal</h3>
+                                <p><!-- <p></p> aqui va la descripcion del servicio de implantes, que es el servicio principal de la clinica, por lo que se le dara una descripcion mas detallada y completa.</p> --></p>
+                            </div>
+                        </article>
+                    </div>
                 </div>
-                <div class="servicio-card">
-                    <div class="servicio-icon"><img src="img/ortodoncia.png" alt="Ortodoncia" style="width:100px;height:100px;"></div>
-                    <h3>Ortodoncia</h3>
-                    <p>Alineamiento perfecto de tus dientes con diferentes opciones de brackets y alineadores</p>
-                </div>
-                <div class="servicio-card">
-                    <div class="servicio-icon"><img src="img/implantes.png" alt="Implantes" style="width:100px;height:100px;"></div>
-                    <h3>Implantes</h3>
-                    <p>Implantes dentales de última generación con garantía a largo plazo</p>
-                </div>
-                <div class="servicio-card">
-                    <div class="servicio-icon"><img src="img/blanqueamiento.png" alt="Blanqueamiento" style="width:100px;height:100px;"></div>
-                    <h3>Blanqueamiento</h3>
-                    <p>Blanqueamiento profesional que proporciona resultados visibles en pocas sesiones</p>
-                </div>
+
+                <div class="swiper-button-prev servicios-swiper-prev" aria-label="Servicio anterior"></div>
+                <div class="swiper-button-next servicios-swiper-next" aria-label="Siguiente servicio"></div>
+                <div class="swiper-pagination servicios-swiper-pagination"></div>
             </div>
         </div>
     </section>
@@ -112,10 +143,6 @@
                         <label for="servicio">Servicio</label>
                         <select id="servicio" name="servicio" required>
                             <option value="">Selecciona un servicio</option>
-                            <option value="Limpieza Dental">Limpieza Dental</option>
-                            <option value="Ortodoncia">Ortodoncia</option>
-                            <option value="Implantes">Implantes</option>
-                            <option value="Blanqueamiento">Blanqueamiento</option>
                         </select>
                         <span class="error-message" id="errorServicio"></span>
                     </div>
@@ -184,11 +211,11 @@
             </div>
             <div class="modal-body">
                 <form id="formAdminLogin" class="form-inline">
-                    <div style="width:100%">
-                        <label for="adminPass" style="color:var(--accent-green);font-weight:600;">Contraseña</label>
-                        <input type="password" id="adminPass" placeholder="Ingresa la contraseña" style="width:100%;padding:10px;margin-top:8px;border-radius:6px;border:1px solid rgba(26,188,156,0.2);background:rgba(0,0,0,0.3);color:var(--text-light);">
+                    <div class="admin-login-field">
+                        <label for="adminPass" class="admin-login-label">Contraseña</label>
+                        <input type="password" id="adminPass" placeholder="Ingresa la contraseña" class="admin-login-input">
                     </div>
-                    <div style="margin-top:12px;display:flex;gap:10px;justify-content:flex-end;width:100%">
+                    <div class="admin-login-actions">
                         <button type="submit" class="modal-button">Ingresar</button>
                     </div>
                 </form>
@@ -203,7 +230,7 @@
                 <button class="modal-close" id="closeConfirmModal">&times;</button>
             </div>
             <div class="modal-body"><p id="confirmModalMessage"></p></div>
-            <div class="modal-footer" style="gap:10px;">
+            <div class="modal-footer modal-footer-gap">
                 <button class="modal-button" id="confirmModalCancel">Cancelar</button>
                 <button class="modal-button" id="confirmModalAccept">Confirmar</button>
             </div>
@@ -238,9 +265,9 @@
                 </table>
             </div>
 
-            <div class="formulario-container" style="margin-top:24px;">
+            <div class="formulario-container form-spacing-top">
                 <form id="formEditarCita" class="formulario">
-                    <h3 style="margin-bottom:12px;">Editar cita seleccionada</h3>
+                    <h3 class="form-subtitle">Editar cita seleccionada</h3>
                     <div class="form-row">
                         <div class="form-group"><label for="editNombre">Nombre</label><input type="text" id="editNombre" required></div>
                         <div class="form-group"><label for="editTelefono">Teléfono</label><input type="text" id="editTelefono" required></div>
@@ -249,14 +276,14 @@
                         <div class="form-group"><label for="editFecha">Fecha</label><input type="date" id="editFecha" required></div>
                         <div class="form-group"><label for="editHora">Hora</label><input type="time" id="editHora" required></div>
                     </div>
-                    <div style="display:flex; gap:10px; justify-content:flex-end;">
-                        <button type="button" class="modal-button" id="btnCancelarEdicion" style="display:none;">Cancelar edición</button>
+                    <div class="form-actions">
+                        <button type="button" class="modal-button" id="btnCancelarEdicion">Cancelar edición</button>
                         <button type="submit" class="modal-button" id="btnGuardarCitaAdmin">Guardar cita</button>
                     </div>
                 </form>
             </div>
 
-            <h3 class="section-title" style="margin-top:40px;">Gestionar Médicos</h3>
+            <h3 class="section-title section-title-sm">Gestionar Médicos</h3>
             <div class="doctors-manage">
                 <form id="formAddDoctor" class="form-inline">
                     <input type="text" id="newDoctor" placeholder="Nombre del médico" required>
@@ -264,6 +291,15 @@
                     <button type="submit" class="modal-button">Añadir Médico</button>
                 </form>
                 <ul id="listaMedicos" class="doctor-list"></ul>
+            </div>
+
+            <h3 class="section-title section-title-sm">Gestionar Servicios</h3>
+            <div class="doctors-manage">
+                <form id="formAddServicio" class="form-inline">
+                    <input type="text" id="newServicio" placeholder="Nombre del servicio" required>
+                    <button type="submit" class="modal-button">Añadir</button>
+                </form>
+                <ul id="listaServicios" class="doctor-list"></ul>
             </div>
         </div>
     </section>
@@ -292,6 +328,7 @@
 
     <div id="toastContainer"></div>
 
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
