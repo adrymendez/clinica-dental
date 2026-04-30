@@ -303,10 +303,11 @@ body {
     justify-content: flex-end;
     flex-direction: column;
     padding: 20px 18px;
-    background:
-        linear-gradient(180deg, rgba(54, 73, 46, 0.06) 20%, rgba(54, 73, 46, 0.75) 70%, rgba(54, 73, 46, 0.88) 100%),
+    /* degradado para dar un efecto de sombreado suave que resalte el texto sin oscurecer demasiado la imagen de fondo. El primer gradiente va de un tono muy transparente en la parte superior a uno más oscuro en la parte inferior, creando un efecto de iluminación natural. El segundo gradiente añade un toque de color verde claro para mantener la identidad visual de la clínica, pero con una opacidad baja para no interferir con la visibilidad del texto ni con la imagen. */ */
+    /* background:
+        linear-gradient(180deg, rgba(54, 73, 46, 0.06) 20%, rgba(54, 73, 46, 0.75) 70%, rgba(54, 73, 46, 0.88) 100%), 
         linear-gradient(0deg, rgba(128, 189, 78, 0.16), rgba(128, 189, 78, 0.16));
-    color: #ffffff;
+    color: #ffffff; */
     transition: background 0.35s ease;
 }
 
