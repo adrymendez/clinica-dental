@@ -500,7 +500,7 @@ app.post('/api/citas', async (req, res) => {
     const fecha = trimOrNull(req.body?.fecha);
     const hora = trimOrNull(req.body?.hora);
 
-    if (!nombre || !telefono || !email || !servicio || !medico || !fecha || !hora) {
+    if (!nombre || !telefono || !servicio || !medico || !fecha || !hora) {
       return fail(res, 'Faltan campos obligatorios para crear la cita', 400);
     }
 

@@ -268,7 +268,7 @@ function validarEmail() {
     const grupo = inputEmail.closest('.form-group');
     const error = document.getElementById('errorEmail');
 
-    // Si está vacío, es válido
+    // Email vacío = válido
     if (valor === '') {
         grupo.classList.remove('error');
         error.textContent = '';
@@ -279,7 +279,7 @@ function validarEmail() {
     // Si escribió algo, validar formato
     if (!esEmailValido(valor)) {
         grupo.classList.add('error');
-        error.textContent = 'Ingresa un correo electrónico válido';
+        error.textContent = 'Ingresa un correo válido';
         error.classList.add('show');
         return false;
     }
@@ -287,6 +287,7 @@ function validarEmail() {
     grupo.classList.remove('error');
     error.textContent = '';
     error.classList.remove('show');
+
     return true;
 }
 
@@ -496,7 +497,7 @@ async function enviarFormulario() {
     const datos = {
         nombre: inputNombre.value.trim(),
         telefono: inputTelefono.value.trim(),
-        email: inputEmail.value.trim(),
+        email: inputEmail.value.trim() || null,
         servicio: inputServicio.value,
         medico: inputMedico.value,
         fecha: inputFecha.value,
