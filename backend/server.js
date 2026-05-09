@@ -32,16 +32,19 @@ const SECRETARIA_TEL = process.env.SECRETARIA_TEL || '+18095298188';
 function normalizarTelefonoDO(telefono = '') {
   const digits = String(telefono).replace(/\D/g, '');
 
-  if (digits.length === 10 && /^8(09|29|49)/.test(digits)) {
+  // 8091234567
+  if (/^(809|829|849)\d{7}$/.test(digits)) {
     return `+1${digits}`;
   }
 
-  if (digits.length === 11 && /^1(809|829|849)/.test(digits)) {
+  // 18091234567
+  if (/^1(809|829|849)\d{7}$/.test(digits)) {
     return `+${digits}`;
   }
 
-  if (digits.length === 12 && /^1(809|829|849)/.test(digits)) {
-    return `+${digits}`;
+  // +18091234567
+  if (/^\+1(809|829|849)\d{7}$/.test(telefono.trim())) {
+    return telefono.trim();
   }
 
   return null;
