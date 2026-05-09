@@ -268,13 +268,15 @@ function validarEmail() {
     const grupo = inputEmail.closest('.form-group');
     const error = document.getElementById('errorEmail');
 
+    // Si está vacío, es válido
     if (valor === '') {
-        grupo.classList.add('error');
-        error.textContent = 'El correo electrónico es obligatorio';
-        error.classList.add('show');
-        return false;
+        grupo.classList.remove('error');
+        error.textContent = '';
+        error.classList.remove('show');
+        return true;
     }
 
+    // Si escribió algo, validar formato
     if (!esEmailValido(valor)) {
         grupo.classList.add('error');
         error.textContent = 'Ingresa un correo electrónico válido';

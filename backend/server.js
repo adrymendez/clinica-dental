@@ -204,7 +204,7 @@ async function initDatabase() {
       id SERIAL PRIMARY KEY,
       nombre TEXT NOT NULL,
       telefono TEXT NOT NULL,
-      email TEXT NOT NULL,
+      email TEXT,
       servicio TEXT NOT NULL,
       medico TEXT NOT NULL,
       fecha TEXT NOT NULL,
