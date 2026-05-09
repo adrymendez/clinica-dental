@@ -514,25 +514,36 @@ app.post('/api/citas', async (req, res) => {
     }
 
     const result = await pool.query(
-      `INSERT INTO citas
-      (nombre, telefono, email, servicio, medico, fecha, hora)
-      VALUES ($1,$2,$3,$4,$5,$6,$7)
-      RETURNING *`,
-      [
-        nombre,
-        telefonoNormalizado,
-        email || null,
-        servicio,
-        medico,
-        fecha,
-        hora
-      ]
-    );
+  `INSERT INTO citas
+  (nombre, telefono, email, servicio, medico, fecha, hora)
+  VALUES ($1,$2,$3,$4,$5,$6,$7)
+  RETURNING *`,
+  [
+    nombre,
+    telefonoNormalizado,
+    email || null,
+    servicio,
+    medico,
+    fecha,
+    hora
+  ]
+);
 
-    return ok(res, result.rows[0], 201);
+const mensaje = generarMensajeConfirmacion(result.rows[0]);
+
+const waResult = await enviarWhatsApp(
+  telefonoNormalizado,
+  mensaje
+);
+
+return ok(res, {
+  ...result.rows[0],
+  waMode: waResult?.mode || null,
+  waLink: waResult?.waLink || null
+}, 201);
 
   } catch (error) {
-    console.error(error);
+    console.error('❌ Error guardando cita:', error);
     return fail(res, 'Error guardando cita', 500);
   }
 });
