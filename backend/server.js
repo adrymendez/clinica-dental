@@ -489,7 +489,6 @@ app.get('/api/citas', async (req, res) => {
     return fail(res, 'No se pudieron obtener las citas', 500);
   }
 });
-
 app.post('/api/citas', async (req, res) => {
   try {
     const nombre = trimOrNull(req.body?.nombre);
@@ -500,44 +499,38 @@ app.post('/api/citas', async (req, res) => {
     const fecha = trimOrNull(req.body?.fecha);
     const hora = trimOrNull(req.body?.hora);
 
+    // EMAIL NO OBLIGATORIO
     if (!nombre || !telefono || !servicio || !medico || !fecha || !hora) {
-      return fail(res, 'Faltan campos obligatorios para crear la cita', 400);
+      return fail(res, 'Todos los campos obligatorios deben completarse');
     }
 
     const telefonoNormalizado = normalizarTelefonoDO(telefono);
+
     if (!telefonoNormalizado) {
-      return fail(res, 'Teléfono inválido. Debe ser un número dominicano válido con código país +1.', 400);
+      return fail(res, 'Teléfono inválido');
     }
 
     const result = await pool.query(
-      `INSERT INTO citas (nombre, telefono, email, servicio, medico, fecha, hora)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [nombre, telefonoNormalizado, email, servicio, medico, fecha, hora]
+      `INSERT INTO citas
+      (nombre, telefono, email, servicio, medico, fecha, hora)
+      VALUES ($1,$2,$3,$4,$5,$6,$7)
+      RETURNING *`,
+      [
+        nombre,
+        telefonoNormalizado,
+        email || null,
+        servicio,
+        medico,
+        fecha,
+        hora
+      ]
     );
 
-    const citaCreada = result.rows[0];
-    let waResult = null;
+    return ok(res, result.rows[0], 201);
 
-    try {
-      const mensaje = generarMensajeConfirmacion(citaCreada);
-      waResult = await enviarWhatsApp(citaCreada.telefono, mensaje);
-      if (!waResult.ok) {
-        console.error('[WA][POST] No se pudo enviar confirmación:', waResult);
-      } else {
-        console.log(`[WA][POST] Confirmación enviada para cita ${citaCreada.id}`);
-      }
-    } catch (waError) {
-      console.error('[WA][POST] Error inesperado en envío de WhatsApp:', waError);
-    }
-
-    return ok(res, {
-      ...citaCreada,
-      waMode: WHATSAPP_MODE,
-      waLink: waResult?.waLink || null
-    }, 201);
   } catch (error) {
-    console.error('❌ Error guardando cita:', error);
-    return fail(res, 'No se pudo guardar la cita', 500);
+    console.error(error);
+    return fail(res, 'Error guardando cita', 500);
   }
 });
 
