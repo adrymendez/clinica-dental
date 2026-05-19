@@ -241,6 +241,16 @@ async function initDatabase() {
     )
   `);
 
+await pool.query(`
+  CREATE TABLE IF NOT EXISTS medico_servicios (
+    id SERIAL PRIMARY KEY,
+    medico_id INTEGER NOT NULL REFERENCES medicos(id) ON DELETE CASCADE,
+    servicio_id INTEGER NOT NULL REFERENCES servicios(id) ON DELETE CASCADE,
+    UNIQUE (medico_id, servicio_id)
+  )
+`);
+
+
   await pool.query(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_servicios_nombre_unique
     ON servicios (LOWER(TRIM(nombre)))
@@ -355,6 +365,7 @@ app.put('/api/medicos/:id', async (req, res) => {
 app.delete('/api/medicos/:id', async (req, res) => {
   const id = Number(req.params.id);
 
+
   if (!Number.isInteger(id) || id <= 0) {
     return fail(res, 'ID de médico inválido', 400);
   }
@@ -412,6 +423,68 @@ app.post('/api/servicios', async (req, res) => {
   } catch (error) {
     console.error('❌ Error guardando servicio:', error);
     return fail(res, 'Error al guardar servicio', 500);
+  }
+
+});
+// ====================== RELACIÓN MÉDICO - SERVICIOS ======================
+
+// Obtener servicios de un médico
+app.get('/api/medicos/:id/servicios', async (req, res) => {
+  const medicoId = req.params.id;
+
+  try {
+    const result = await pool.query(`
+      SELECT
+        servicios.id,
+        servicios.nombre
+      FROM medico_servicios
+      INNER JOIN servicios
+        ON servicios.id = medico_servicios.servicio_id
+      WHERE medico_servicios.medico_id = $1
+      ORDER BY servicios.nombre ASC
+    `, [medicoId]);
+
+    return ok(res, result.rows);
+
+  } catch (error) {
+    console.error('❌ Error obteniendo servicios del médico:', error);
+    return fail(res, 'Error obteniendo servicios del médico', 500);
+  }
+});
+
+// Asignar servicios a un médico
+app.post('/api/medicos/:id/servicios', async (req, res) => {
+  const medicoId = req.params.id;
+  const servicios = req.body?.servicios || [];
+
+  try {
+
+    // Eliminar relaciones anteriores
+    await pool.query(
+      'DELETE FROM medico_servicios WHERE medico_id = $1',
+      [medicoId]
+    );
+
+    // Insertar nuevas relaciones
+    for (const servicioId of servicios) {
+
+      await pool.query(`
+        INSERT INTO medico_servicios (
+          medico_id,
+          servicio_id
+        )
+        VALUES ($1, $2)
+      `, [medicoId, servicioId]);
+    }
+
+    return ok(res, {
+      medico_id: medicoId,
+      servicios
+    });
+
+  } catch (error) {
+    console.error('❌ Error asignando servicios al médico:', error);
+    return fail(res, 'Error asignando servicios', 500);
   }
 });
 

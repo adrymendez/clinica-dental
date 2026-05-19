@@ -389,6 +389,7 @@ function validarHora() {
 /* ======================= VALIDACIÓN EN TIEMPO REAL ======================= */
 
 inputNombre.addEventListener('blur', validarNombre);
+
 inputNombre.addEventListener('input', function() {
     if (this.closest('.form-group').classList.contains('error')) {
         validarNombre();
@@ -396,6 +397,7 @@ inputNombre.addEventListener('input', function() {
 });
 
 inputTelefono.addEventListener('blur', validarTelefono);
+
 inputTelefono.addEventListener('input', function() {
     if (this.closest('.form-group').classList.contains('error')) {
         validarTelefono();
@@ -403,6 +405,7 @@ inputTelefono.addEventListener('input', function() {
 });
 
 inputEmail.addEventListener('blur', validarEmail);
+
 inputEmail.addEventListener('input', function() {
     if (this.closest('.form-group').classList.contains('error')) {
         validarEmail();
@@ -410,7 +413,63 @@ inputEmail.addEventListener('input', function() {
 });
 
 inputServicio.addEventListener('change', validarServicio);
-inputMedico.addEventListener('change', validarMedico);
+
+inputMedico.addEventListener('change', async function () {
+
+    validarMedico();
+
+    const medicoId = this.value;
+
+    inputServicio.innerHTML =
+        '<option value="">Cargando servicios...</option>';
+
+    if (!medicoId) {
+
+        inputServicio.innerHTML =
+            '<option value="">Selecciona un servicio</option>';
+
+        return;
+    }
+
+    try {
+
+        const serviciosMedico = await apiRequest(
+            `/medicos/${medicoId}/servicios`
+        );
+
+        inputServicio.innerHTML =
+            '<option value="">Selecciona un servicio</option>';
+
+        if (!serviciosMedico.length) {
+
+            inputServicio.innerHTML =
+                '<option value="">Este médico no tiene servicios</option>';
+
+            return;
+        }
+
+        serviciosMedico.forEach(servicio => {
+
+            const option = document.createElement('option');
+
+            option.value = servicio.nombre;
+            option.textContent = servicio.nombre;
+
+            inputServicio.appendChild(option);
+        });
+
+    } catch (error) {
+
+        console.error(
+            'Error cargando servicios del médico:',
+            error
+        );
+
+        inputServicio.innerHTML =
+            '<option value="">Error cargando servicios</option>';
+    }
+});
+
 inputMedico.addEventListener('blur', validarMedico);
 
 inputFecha.addEventListener('change', function() {
@@ -499,7 +558,7 @@ async function enviarFormulario() {
         telefono: inputTelefono.value.trim(),
         email: inputEmail.value.trim() || null,
         servicio: inputServicio.value,
-        medico: inputMedico.value,
+        medico: inputMedico.options[inputMedico.selectedIndex].text,
         fecha: inputFecha.value,
         hora: inputHora.value,
     };
@@ -756,23 +815,46 @@ async function cargarMedicos() {
 }
 
 function renderDoctorSelects() {
-    inputMedico.innerHTML = '<option value="">Selecciona un médico</option>';
+
+    inputMedico.innerHTML =
+        '<option value="">Selecciona un médico</option>';
+
     medicos.forEach((m) => {
+
         const opt = document.createElement('option');
-        opt.value = m.nombre; // requerido para compatibilidad backend de citas
-        opt.textContent = m.especialidad ? `${m.nombre} — ${m.especialidad}` : m.nombre;
+
+        opt.value = m.id;
+
+        opt.textContent =
+            m.especialidad
+                ? `${m.nombre} — ${m.especialidad}`
+                : m.nombre;
+
         inputMedico.appendChild(opt);
     });
 
     if (filterMedico) {
+
         const seleccionado = filterMedico.value;
-        filterMedico.innerHTML = '<option value="">Todos los médicos</option>';
+
+        filterMedico.innerHTML =
+            '<option value="">Todos los médicos</option>';
+
         medicos.forEach((m) => {
+
             const opt = document.createElement('option');
+
+            // ESTE SE QUEDA CON NOMBRE
             opt.value = m.nombre;
-            opt.textContent = m.especialidad ? `${m.nombre} — ${m.especialidad}` : m.nombre;
+
+            opt.textContent =
+                m.especialidad
+                    ? `${m.nombre} — ${m.especialidad}`
+                    : m.nombre;
+
             filterMedico.appendChild(opt);
         });
+
         if ([...filterMedico.options].some(o => o.value === seleccionado)) {
             filterMedico.value = seleccionado;
         }
