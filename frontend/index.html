@@ -151,20 +151,25 @@
                         <input type="email" id="email" name="email" placeholder="Tu correo (Opcional)">
                         <span class="error-message" id="errorEmail"></span>
                     </div>
-                    <div class="form-group">
-                        <label for="servicio">Servicio</label>
-                        <select id="servicio" name="servicio" required>
-                            <option value="">Selecciona un servicio</option>
-                        </select>
-                        <span class="error-message" id="errorServicio"></span>
-                    </div>
-                    <div class="form-group">
-                        <label for="medico">Médico</label>
-                        <select id="medico" name="medico" required>
-                            <option value="">Selecciona un médico</option>
-                        </select>
-                        <span class="error-message" id="errorMedico"></span>
-                    </div>
+                    
+
+<div class="form-group">
+    <label for="medico">Médico</label>
+    <select id="medico" name="medico" required>
+        <option value="">Selecciona un médico</option>
+    </select>
+    <span class="error-message" id="errorMedico"></span>
+</div>
+
+<div class="form-group">
+    <label for="servicio">Servicio</label>
+    <select id="servicio" name="servicio" required>
+        <option value="">Selecciona un servicio</option>
+    </select>
+    <span class="error-message" id="errorServicio"></span>
+</div>
+
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="fecha">Fecha</label>
@@ -312,9 +317,46 @@
                     <button type="submit" class="modal-button">Añadir</button>
                 </form>
                 <ul id="listaServicios" class="doctor-list"></ul>
+
+<h3 class="section-title section-title-sm">
+    Asignar Servicios a Médicos
+</h3>
+
+<div class="doctors-manage">
+
+    <div class="form-group">
+        <label for="medicoServiciosSelect">
+            Seleccionar Médico
+        </label>
+
+        <select id="medicoServiciosSelect">
+            <option value="">
+                Selecciona un médico
+            </option>
+        </select>
+    </div>
+
+    <div
+        id="listaServiciosMedico"
+        class="doctor-list"
+    >
+    </div>
+
+    <button
+        type="button"
+        id="guardarServiciosMedico"
+        class="modal-button"
+    >
+        Guardar Servicios
+    </button>
+
             </div>
         </div>
     </section>
+
+    
+
+</div>
 
     <footer class="footer">
         <div class="container footer-grid">

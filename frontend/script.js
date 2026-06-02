@@ -46,6 +46,9 @@ const btnCancelarEdicion = document.getElementById('btnCancelarEdicion');
 const formAddServicio = document.getElementById('formAddServicio');
 const inputNewServicio = document.getElementById('newServicio');
 const listaServicios = document.getElementById('listaServicios');
+const medicoServiciosSelect = document.getElementById('medicoServiciosSelect');
+const listaServiciosMedico = document.getElementById('listaServiciosMedico');
+const guardarServiciosMedicoBtn = document.getElementById('guardarServiciosMedico');
 
 // UX visual
 const toastContainer = document.getElementById('toastContainer');
@@ -558,7 +561,10 @@ async function enviarFormulario() {
         telefono: inputTelefono.value.trim(),
         email: inputEmail.value.trim() || null,
         servicio: inputServicio.value,
-        medico: inputMedico.options[inputMedico.selectedIndex].text,
+        medico:
+    inputMedico.options[
+        inputMedico.selectedIndex
+    ].dataset.nombre,
         fecha: inputFecha.value,
         hora: inputHora.value,
     };
@@ -746,7 +752,7 @@ if (typeof Swiper !== 'undefined') {
     });
 }
 
-/* ======================= INICIALIZACIÓN ======================= */
+/* ======================= INICIALIZACIÓN ======================= 
 
 window.addEventListener('load', function() {
     configurarRangoFechas();
@@ -760,10 +766,13 @@ window.addEventListener('load', function() {
 
 /* ======================= VALIDACIÓN AL CARGAR LA PÁGINA ======================= */
 
-window.addEventListener('DOMContentLoaded', function() {
-    const camposRequeridos = formularioCita.querySelectorAll('[required]');
-    console.log(`Formulario cargado con ${camposRequeridos.length} campos requeridos`);
-    console.log('Horarios ocupados de prueba:', horariosOcupados);
+window.addEventListener('load', async function () {
+
+    configurarRangoFechas();
+    actualizarHorasDisponibles();
+
+    await inicializarApp();
+
 });
 
 /* ======================= ACCESIBILIDAD ======================= */
@@ -824,6 +833,7 @@ function renderDoctorSelects() {
         const opt = document.createElement('option');
 
         opt.value = m.id;
+        opt.dataset.nombre = m.nombre;
 
         opt.textContent =
             m.especialidad
@@ -885,35 +895,58 @@ function createDoctorViewItem(medico) {
     btnEdit.className = 'modal-button small';
     btnEdit.textContent = 'Editar';
     btnEdit.addEventListener('click', () => enableDoctorInlineEdit(li, medico));
+const btnDelete = document.createElement('button');
+btnDelete.className = 'modal-button small danger';
+btnDelete.textContent = 'Eliminar';
 
-    const btnDelete = document.createElement('button');
-    btnDelete.className = 'modal-button small danger';
-    btnDelete.textContent = 'Eliminar';
-    btnDelete.addEventListener('click', async () => {
-        const okDelete = await confirmAction({
-            title: 'Eliminar médico',
-            message: `¿Deseas eliminar a "${medico.nombre}"?`
-        });
-        if (!okDelete) return;
+btnDelete.addEventListener('click', async () => {
 
-        try {
-            await apiRequest(`/medicos/${medico.id}`, { method: 'DELETE' });
-            await cargarMedicos();
-            showToast('Médico eliminado correctamente', 'success');
-        } catch (error) {
-            console.error('Error eliminando médico:', error);
-            showToast(error.message || 'No se pudo eliminar el médico', 'error');
-        }
+    const okDelete = await confirmAction({
+        title: 'Eliminar médico',
+        message: `¿Deseas eliminar "${medico.nombre}"?`
     });
 
-    actions.appendChild(btnEdit);
-    actions.appendChild(btnDelete);
+    if (!okDelete) return;
 
-    li.appendChild(info);
-    li.appendChild(actions);
+    try {
 
-    return li;
+        await apiRequest(
+            `/medicos/${medico.id}`,
+            { method: 'DELETE' }
+        );
+
+        await cargarMedicos();
+        renderMedicoServiciosSelect();
+
+        showToast(
+            'Médico eliminado correctamente',
+            'success'
+        );
+
+    } catch (error) {
+
+        console.error(
+            'Error eliminando médico:',
+            error
+        );
+
+        showToast(
+            error.message ||
+            'No se pudo eliminar el médico',
+            'error'
+        );
+    }
+});
+
+actions.appendChild(btnEdit);
+actions.appendChild(btnDelete);
+
+li.appendChild(info);
+li.appendChild(actions);
+
+return li;
 }
+    
 
 function enableDoctorInlineEdit(container, medico) {
     container.innerHTML = '';
@@ -939,46 +972,60 @@ function enableDoctorInlineEdit(container, medico) {
     btnSave.className = 'modal-button small';
     btnSave.textContent = 'Guardar';
 
-    const btnCancel = document.createElement('button');
-    btnCancel.className = 'modal-button small';
-    btnCancel.textContent = 'Cancelar';
+const btnCancel = document.createElement('button');
+btnCancel.className = 'modal-button small';
+btnCancel.textContent = 'Cancelar';
 
-    btnSave.addEventListener('click', async () => {
-        const nombre = inputNombreEdit.value.trim();
-        const especialidad = inputEspecialidadEdit.value.trim();
+btnSave.addEventListener('click', async () => {
 
-        if (!nombre) {
-            showToast('El nombre del médico es obligatorio', 'error');
-            return;
-        }
+    const nombre = inputNombreEdit.value.trim();
+    const especialidad = inputEspecialidadEdit.value.trim();
 
-        const duplicado = medicos.some((m) => m.id !== medico.id && m.nombre.toLowerCase() === nombre.toLowerCase());
-        if (duplicado) {
-            showToast('Ya existe otro médico con ese nombre', 'error');
-            return;
-        }
+    if (!nombre) {
+        showToast('El nombre del médico es obligatorio', 'error');
+        return;
+    }
 
-        try {
-            await apiRequest(`/medicos/${medico.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre, especialidad: especialidad || null })
-            });
+    try {
 
-            await cargarMedicos();
-            showToast('Médico actualizado correctamente', 'success');
-        } catch (error) {
-            console.error('Error actualizando médico:', error);
-            showToast(error.message || 'No se pudo actualizar el médico', 'error');
-        }
-    });
+        await apiRequest(`/medicos/${medico.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                nombre,
+                especialidad: especialidad || null
+            })
+        });
 
-    btnCancel.addEventListener('click', () => {
-        renderDoctorsList();
-    });
+        await cargarMedicos();
+        renderMedicoServiciosSelect();
 
-    actions.appendChild(btnSave);
-    actions.appendChild(btnCancel);
+        showToast(
+            'Médico actualizado correctamente',
+            'success'
+        );
+
+    } catch (error) {
+
+        console.error(
+            'Error actualizando médico:',
+            error
+        );
+
+        showToast(
+            error.message ||
+            'No se pudo actualizar el médico',
+            'error'
+        );
+    }
+});
+
+btnCancel.addEventListener('click', () => {
+    renderDoctorsList();
+});
+
+actions.appendChild(btnSave);
+actions.appendChild(btnCancel);
 
     editWrap.appendChild(inputNombreEdit);
     editWrap.appendChild(inputEspecialidadEdit);
@@ -1025,10 +1072,11 @@ async function guardarMedico() {
         body: JSON.stringify({ nombre, especialidad: especialidad || null })
     });
 
-    await cargarMedicos();
-    inputNewDoctor.value = '';
-    if (inputNewDoctorEspecialidad) inputNewDoctorEspecialidad.value = '';
-    showToast('Médico agregado correctamente', 'success');
+   await cargarMedicos();
+renderMedicoServiciosSelect();
+
+inputNewDoctor.value = '';
+inputNewDoctorEspecialidad.value = '';
 }
 
 formAddDoctor && formAddDoctor.addEventListener('submit', async function(e) {
@@ -1104,32 +1152,60 @@ function createServicioViewItem(servicio) {
     const btnDelete = document.createElement('button');
     btnDelete.className = 'modal-button small danger';
     btnDelete.textContent = 'Eliminar';
-    btnDelete.addEventListener('click', async () => {
-        const okDelete = await confirmAction({
-            title: 'Eliminar servicio',
-            message: `¿Deseas eliminar "${servicio.nombre}"?`
-        });
-        if (!okDelete) return;
+   btnDelete.addEventListener('click', async () => {
 
-        try {
-            await apiRequest(`/servicios/${servicio.id}`, { method: 'DELETE' });
-            await cargarServicios();
-            showToast('Servicio eliminado correctamente', 'success');
-        } catch (error) {
-            console.error('Error eliminando servicio:', error);
-            showToast(error.message || 'No se pudo eliminar el servicio', 'error');
-        }
+    const okDelete = await confirmAction({
+        title: 'Eliminar servicio',
+        message: `¿Deseas eliminar "${servicio.nombre}"?`
     });
 
-    actions.appendChild(btnEdit);
-    actions.appendChild(btnDelete);
 
-    li.appendChild(info);
-    li.appendChild(actions);
 
-    return li;
+
+    if (!okDelete) return;
+
+    try {
+
+        await apiRequest(
+            `/servicios/${servicio.id}`,
+            { method: 'DELETE' }
+        );
+
+        await cargarServicios();
+
+        if (medicoServiciosSelect.value) {
+            await cargarServiciosDelMedico(
+                medicoServiciosSelect.value
+            );
+        }
+
+        showToast(
+            'Servicio eliminado correctamente',
+            'success'
+        );
+
+    } catch (error) {
+
+        console.error(
+            'Error eliminando servicio:',
+            error
+        );
+
+        showToast(
+            error.message ||
+            'No se pudo eliminar el servicio',
+            'error'
+        );
+    }
+});
+actions.appendChild(btnEdit);
+actions.appendChild(btnDelete);
+
+li.appendChild(info);
+li.appendChild(actions);
+
+return li;
 }
-
 function enableServicioInlineEdit(container, servicio) {
     container.innerHTML = '';
     container.classList.add('editing');
@@ -1168,20 +1244,39 @@ function enableServicioInlineEdit(container, servicio) {
         }
 
         try {
-            await apiRequest(`/servicios/${servicio.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre })
-            });
-
-            await cargarServicios();
-            showToast('Servicio actualizado correctamente', 'success');
-        } catch (error) {
-            console.error('Error actualizando servicio:', error);
-            showToast(error.message || 'No se pudo actualizar el servicio', 'error');
-        }
+    await apiRequest(`/servicios/${servicio.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre })
     });
 
+    await cargarServicios();
+
+    if (medicoServiciosSelect.value) {
+        await cargarServiciosDelMedico(
+            medicoServiciosSelect.value
+        );
+    }
+
+    showToast(
+        'Servicio actualizado correctamente',
+        'success'
+    );
+
+} catch (error) {
+
+    console.error(
+        'Error actualizando servicio:',
+        error
+    );
+
+    showToast(
+        error.message ||
+        'No se pudo actualizar el servicio',
+        'error'
+    );
+}
+});
     btnCancel.addEventListener('click', () => {
         renderServiciosList();
     });
@@ -1213,16 +1308,11 @@ function renderServiciosList() {
 }
 
 async function guardarServicio() {
+
     const nombre = (inputNewServicio?.value || '').trim();
 
     if (!nombre) {
         showToast('Debes ingresar el nombre del servicio', 'error');
-        return;
-    }
-
-    const existe = servicios.some((s) => s.nombre.toLowerCase() === nombre.toLowerCase());
-    if (existe) {
-        showToast('El servicio ya existe', 'error');
         return;
     }
 
@@ -1233,11 +1323,26 @@ async function guardarServicio() {
     });
 
     await cargarServicios();
-    inputNewServicio.value = '';
-    showToast('Servicio agregado correctamente', 'success');
+
+    if (medicoServiciosSelect.value) {
+        await cargarServiciosDelMedico(
+            medicoServiciosSelect.value
+        );
+    }
+    showToast(
+    'Servicio agregado correctamente',
+    'success'
+);
+
+
+   inputNewServicio.value = '';
+
 }
 
-formAddServicio && formAddServicio.addEventListener('submit', async function(e) {
+formAddServicio &&
+formAddServicio.addEventListener('submit', async function(e) {
+
+
     e.preventDefault();
     try {
         await guardarServicio();
@@ -1246,6 +1351,145 @@ formAddServicio && formAddServicio.addEventListener('submit', async function(e) 
         showToast(error.message || 'No se pudo guardar el servicio', 'error');
     }
 });
+
+/* ======================= MÉDICO ↔ SERVICIOS ======================= */
+
+function renderMedicoServiciosSelect() {
+
+    if (!medicoServiciosSelect) return;
+
+    medicoServiciosSelect.innerHTML =
+        '<option value="">Selecciona un médico</option>';
+
+    medicos.forEach((m) => {
+
+        const option = document.createElement('option');
+
+        option.value = m.id;
+
+        option.textContent =
+            m.especialidad
+                ? `${m.nombre} — ${m.especialidad}`
+                : m.nombre;
+
+        medicoServiciosSelect.appendChild(option);
+    });
+}
+
+async function cargarServiciosDelMedico(medicoId) {
+
+    if (!listaServiciosMedico) return;
+
+    listaServiciosMedico.innerHTML = '';
+
+    if (!medicoId) return;
+
+    try {
+
+        const serviciosAsignados =
+            await apiRequest(
+                `/medicos/${medicoId}/servicios`
+            );
+
+        const idsAsignados =
+            serviciosAsignados.map(s => s.id);
+
+        servicios.forEach((servicio) => {
+
+            const label =
+                document.createElement('label');
+
+            label.className =
+                'checkbox-servicio';
+
+            const checked =
+                idsAsignados.includes(servicio.id)
+                    ? 'checked'
+                    : '';
+
+            label.innerHTML = `
+                <input
+                    type="checkbox"
+                    value="${servicio.id}"
+                    ${checked}
+                >
+                ${servicio.nombre}
+            `;
+
+            listaServiciosMedico.appendChild(label);
+        });
+
+    } catch (error) {
+
+        console.error(
+            'Error cargando servicios del médico:',
+            error
+        );
+
+        showToast(
+            'Error cargando servicios',
+            'error'
+        );
+    }
+}
+
+async function guardarServiciosMedico() {
+
+    const medicoId =
+        medicoServiciosSelect.value;
+
+    if (!medicoId) {
+
+        showToast(
+            'Selecciona un médico',
+            'error'
+        );
+
+        return;
+    }
+
+    const checkboxes =
+        listaServiciosMedico.querySelectorAll(
+            'input[type="checkbox"]:checked'
+        );
+
+    const serviciosSeleccionados =
+    Array.from(checkboxes).map(c => Number(c.value));
+
+    try {
+
+        await apiRequest(
+            `/medicos/${medicoId}/servicios`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    servicios: serviciosSeleccionados
+                })
+            }
+        );
+
+        showToast(
+            'Servicios asignados correctamente',
+            'success'
+        );
+
+    } catch (error) {
+
+        console.error(
+            'Error guardando servicios:',
+            error
+        );
+
+        showToast(
+            'Error guardando servicios',
+            'error'
+        );
+    }
+}
+
 
 /* ======================= ADMIN CITAS ======================= */
 
@@ -1476,15 +1720,41 @@ if (editFecha) {
 
 /* ======================= INICIALIZACIÓN EXTENDIDA ======================= */
 
-async function inicializarApp() {
+ async function inicializarApp() {
+
     await cargarMedicos();
+
+    renderMedicoServiciosSelect();
+
     await cargarServicios();
+
+    if (medicoServiciosSelect.value) {
+        await cargarServiciosDelMedico(
+            medicoServiciosSelect.value
+        );
+    }
+
     await cargarCitasDesdeBD();
+
     configurarRangoFechas();
+
     actualizarHorasDisponibles();
 }
 
-window.addEventListener('load', inicializarApp);
+// window.addEventListener('load', inicializarApp);
+medicoServiciosSelect &&
+medicoServiciosSelect.addEventListener(
+    'change',
+    function () {
+        cargarServiciosDelMedico(this.value);
+    }
+);
+
+guardarServiciosMedicoBtn &&
+guardarServiciosMedicoBtn.addEventListener(
+    'click',
+    guardarServiciosMedico
+);
 
 /* ======================= LOGIN ADMIN Y ÁREA PACIENTE ======================= */
 
