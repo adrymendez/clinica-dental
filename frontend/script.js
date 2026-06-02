@@ -754,15 +754,15 @@ if (typeof Swiper !== 'undefined') {
 
 /* ======================= INICIALIZACIÓN ======================= 
 
-window.addEventListener('load', function() {
-    configurarRangoFechas();
+/*window.addEventListener('load', function() {*/
+   /* configurarRangoFechas();
     actualizarHorasDisponibles();
 
     const elementos = document.querySelectorAll('.hero-content, .servicios-slider');
     elementos.forEach(elemento => {
         elemento.style.animation = 'fadeIn 0.8s ease-out';
     });
-});
+});*/
 
 /* ======================= VALIDACIÓN AL CARGAR LA PÁGINA ======================= */
 
