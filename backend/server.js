@@ -144,6 +144,21 @@ function generarMensajeRecordatorio(cita) {
 Te esperamos.`;
 }
 
+function generarMensajeRecordatorio24h(cita) {
+  return `Hola ${cita.nombre},
+
+Le recordamos que tiene una cita programada para mañana.
+
+📅 Fecha: ${cita.fecha}
+⏰ Hora: ${cita.hora}
+
+Si necesita reprogramar o cancelar su cita, comuníquese con nosotros con anticipación.
+
+📞 Tel: ${SECRETARIA_TEL}
+
+Gracias por confiar en Centro Dental Méndez.`;
+}
+
 function parsearFechaHoraSeguro(fecha, hora) {
   if (!fecha || !hora) return null;
   const iso = `${fecha}T${hora}:00`;
@@ -153,45 +168,148 @@ function parsearFechaHoraSeguro(fecha, hora) {
 }
 
 async function procesarRecordatorios() {
-  const ahora = new Date();
-  const desde = new Date(ahora.getTime() + 55 * 60 * 1000);
-  const hasta = new Date(ahora.getTime() + 65 * 60 * 1000);
+
+const ahora = new Date();
+
+// Ventana para recordatorio 24 horas
+const desde24h = new Date(
+  ahora.getTime() + (23 * 60 + 55) * 60 * 1000
+);
+
+const hasta24h = new Date(
+  ahora.getTime() + (24 * 60 + 5) * 60 * 1000
+);
+
+// Ventana para recordatorio 1 hora
+const desde1h = new Date(
+  ahora.getTime() + 55 * 60 * 1000
+);
+
+const hasta1h = new Date(
+  ahora.getTime() + 65 * 60 * 1000
+);
 
   try {
     const result = await pool.query(`
-      SELECT id, nombre, telefono, fecha, hora, recordatorio_enviado
+      SELECT 
+      id, 
+      nombre, 
+      telefono,
+      fecha, 
+      hora,
+      recordatorio_enviado,
+      recordatorio_24h_enviado
       FROM citas
-      WHERE COALESCE(recordatorio_enviado, false) = false
       ORDER BY id ASC
-    `);
+    `); 
+        for (const cita of result.rows) {
 
-    for (const cita of result.rows) {
-      const citaDate = parsearFechaHoraSeguro(cita.fecha, cita.hora);
+      const citaDate =
+        parsearFechaHoraSeguro(
+          cita.fecha,
+          cita.hora
+        );
+
       if (!citaDate) {
-        console.warn(`[WA][REMINDER] Cita ${cita.id} con fecha/hora inválida: ${cita.fecha} ${cita.hora}`);
         continue;
       }
+// =============================
+// RECORDATORIO 24 HORAS
+// =============================
+if (
+  citaDate >= desde24h &&
+  citaDate <= hasta24h &&
+  !cita.recordatorio_24h_enviado
+) {
 
-      if (citaDate >= desde && citaDate <= hasta) {
-        const mensaje = generarMensajeRecordatorio(cita);
-        const waResult = await enviarWhatsApp(cita.telefono, mensaje);
+  const mensaje24h =
+    generarMensajeRecordatorio24h(cita);
 
-        if (waResult.ok) {
-          await pool.query(
-            'UPDATE citas SET recordatorio_enviado = true WHERE id = $1',
-            [cita.id]
-          );
-          console.log(`[WA][REMINDER] Recordatorio enviado para cita ${cita.id}`);
-        } else {
-          console.error(`[WA][REMINDER] Falló envío para cita ${cita.id}.`, waResult);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('❌ Error procesando recordatorios:', error);
+  const waResult24h =
+    await enviarWhatsApp(
+      cita.telefono,
+      mensaje24h
+    );
+
+  if (waResult24h.ok) {
+
+    await pool.query(
+      `UPDATE citas
+       SET recordatorio_24h_enviado = true
+       WHERE id = $1`,
+      [cita.id]
+    );
+
+    console.log(
+      `[WA][24H] Recordatorio enviado para cita ${cita.id}`
+    );
+
+  } else {
+
+    console.error(
+      `[WA][24H] Error enviando recordatorio para cita ${cita.id}`,
+      waResult24h
+    );
+
   }
 }
 
+// =============================
+// RECORDATORIO 1 HORA
+// =============================
+if (
+  citaDate >= desde1h &&
+  citaDate <= hasta1h &&
+  !cita.recordatorio_enviado
+) {
+
+  const mensaje1h =
+    generarMensajeRecordatorio(cita);
+
+  const waResult1h =
+    await enviarWhatsApp(
+      cita.telefono,
+      mensaje1h
+    );
+
+  if (waResult1h.ok) {
+
+    await pool.query(
+      `UPDATE citas
+       SET recordatorio_enviado = true
+       WHERE id = $1`,
+      [cita.id]
+    );
+
+    console.log(
+      `[WA][1H] Recordatorio enviado para cita ${cita.id}`
+    );
+
+  } else {
+
+    console.error(
+      `[WA][1H] Error enviando recordatorio para cita ${cita.id}`,
+      waResult1h
+    );
+
+  }
+}
+      
+
+    }
+
+  } catch (error) {
+
+    console.error(
+      '❌ Error procesando recordatorios:',
+      error
+    );
+
+  }
+}
+
+   
+ 
 const trimOrNull = (value) => {
   if (value === undefined || value === null) return null;
   const normalized = String(value).trim();
@@ -220,6 +338,11 @@ async function initDatabase() {
     ALTER TABLE citas
     ADD COLUMN IF NOT EXISTS recordatorio_enviado BOOLEAN DEFAULT false
   `);
+
+  await pool.query(`
+  ALTER TABLE citas
+  ADD COLUMN IF NOT EXISTS recordatorio_24h_enviado BOOLEAN DEFAULT false
+`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS medicos (
@@ -644,9 +767,14 @@ app.put('/api/citas/:id', async (req, res) => {
 
     const result = await pool.query(
       `UPDATE citas
-       SET nombre = $1, telefono = $2, fecha = $3, hora = $4
-       WHERE id = $5
-       RETURNING *`,
+      SET nombre = $1,
+      telefono = $2,
+      fecha = $3,
+      hora = $4,
+      recordatorio_enviado = false,
+      recordatorio_24h_enviado = false
+      WHERE id = $5
+      RETURNING *`,
       [nombre, telefonoNormalizado, fecha, hora, id]
     );
 
